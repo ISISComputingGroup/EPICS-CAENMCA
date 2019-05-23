@@ -8,8 +8,12 @@ include $(TOP)/configure/CONFIG
 #==================================================
 # build a support library
 
+ifneq ($(findstring linux,$(EPICS_HOST_ARCH)),)
+CAENMCALIB = $(ICPBINARYDIR)/CAENMCA/Linux
+CAENARCH = x64
+else
 CAENMCALIB = $(ICPBINARYDIR)/CAENMCA/Windows
-
+endif
 LIBRARY_IOC += CAENMCASup
 
 # xxxRecord.h will be created from xxxRecord.dbd
@@ -35,8 +39,12 @@ USR_CPPFLAGS += -I$(CAENMCALIB)/include
 
 CAENMCA_DIR = $(CAENMCALIB)/lib/$(CAENARCH)
 
+CAENMCASup_SYS_LIBS_Linux += xml2
+
 BIN_INSTALLS_WIN32 += $(CAENMCALIB)/lib/$(CAENARCH)/CAENMCA.dll $(CAENMCALIB)/lib/$(CAENARCH)/CAENUtility.dll $(CAENMCALIB)/lib/$(CAENARCH)/libxml2.dll
 LIB_INSTALLS_WIN32 += $(CAENMCALIB)/lib/$(CAENARCH)/CAENMCA.lib
+
+LIB_INSTALLS_Linux += $(CAENMCALIB)/lib/$(CAENARCH)/libCAENMCA.so $(CAENMCALIB)/lib/$(CAENARCH)/libCAENUtility.so
 
 #===========================
 
