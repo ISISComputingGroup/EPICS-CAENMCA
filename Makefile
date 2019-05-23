@@ -27,5 +27,6 @@ $(foreach dir, $(filter %Top, $(DIRS)), \
 iocBoot_DEPEND_DIRS += $(filter %App,$(DIRS))
 
 # Add any additional dependency rules here:
+CAENMCATestApp_DEPEND_DIRS += CAENMCAApp
 
 include $(TOP)/configure/RULES_TOP
