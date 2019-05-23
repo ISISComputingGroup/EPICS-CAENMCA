@@ -21,7 +21,7 @@ $(APPNAME)_DBD += asyn.dbd
 $(APPNAME)_DBD += CAENMCA.dbd
 
 # Add all the support libraries needed by this IOC
-$(APPNAME)_LIBS += CAENMCASup
+$(APPNAME)_LIBS += CAENMCASup CAENMCA
 $(APPNAME)_LIBS += asyn
 
 # CAENMCATest_registerRecordDeviceDriver.cpp derives from CAENMCATest.dbd
@@ -36,6 +36,8 @@ $(APPNAME)_SRCS_vxWorks += -nil-
 
 # Finally link to the EPICS Base libraries
 $(APPNAME)_LIBS += $(EPICS_BASE_IOC_LIBS)
+
+$(APPNAME)_SYS_LIBS_Linux += xml2
 
 #===========================
 
