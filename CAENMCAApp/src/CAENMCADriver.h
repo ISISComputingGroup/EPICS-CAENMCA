@@ -5,8 +5,7 @@
 * in the file LICENSE.txt that is included with this distribution. 
 \*************************************************************************/ 
 
-/// @file webgetDriver.h Header for #webgetDriver class.
-/// @author Freddie Akeroyd, STFC ISIS Facility, GB
+/// @file CAENMCADriver.h Header for #CAENMCADriver class.
 
 #ifndef CAENMCADRIVER_H
 #define CAENMCADRIVER_H
@@ -39,13 +38,13 @@ private:
 
 	static void pollerTaskC(void* arg)
 	{
-//	    webgetDriver* driver = static_cast<webgetDriver*>(arg);
-//		driver->pollerTask();	    
+	    CAENMCADriver* driver = static_cast<CAENMCADriver*>(arg);
+		driver->pollerTask();	    
 	}
-//	void pollerTask();
+	void pollerTask();
 };
 
 #define P_deviceNameString "DEVICE"
 #define P_startAcquisitionString "START"
 
-#endif /* WEBGETDRIVER_H */
+#endif /* CAENMCADRIVER_H */
