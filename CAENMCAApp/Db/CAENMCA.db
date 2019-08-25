@@ -1,0 +1,12 @@
+
+record(bo, "$(P)$(Q)START:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),0,0)START")
+}
+
+record(bo, "$(P)$(Q)STOP:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),0,0)STOP")
+}

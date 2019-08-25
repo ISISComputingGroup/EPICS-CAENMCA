@@ -1,0 +1,7 @@
+	
+record(ai, "$(P)$(Q)HV$(CHAN):VMON")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)VMON")
+	field(SCAN, "I/O Intr")
+}

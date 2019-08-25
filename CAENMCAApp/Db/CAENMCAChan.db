@@ -1,0 +1,39 @@
+record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC")
+{
+    field(DTYP, "asynInt32ArrayIn")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPEC")
+	field(NELM, 32768)
+	field(FTVL, "LONG")
+	field(SCAN, "I/O Intr")
+}
+	
+record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:CNTS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECCOUNTS")
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):NEVENTS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTS")
+	field(SCAN, "I/O Intr")
+}
+
+record(waveform, "$(P)$(Q)C$(CHAN):LISTFILE:SP")
+{
+    field(DTYP, "asynOctetWrite")
+	field(INP, "@asyn($(PORT),$(CHAN),0)LISTFILE")
+	field(NELM, 512)
+	field(FTVL, "CHAR")
+}
+
+record(waveform, "$(P)$(Q)C$(CHAN):LISTFILE")
+{
+    field(DTYP, "asynOctetRead")
+	field(INP, "@asyn($(PORT),$(CHAN),0)LISTFILE")
+	field(NELM, 512)
+	field(FTVL, "CHAR")
+	field(SCAN, "I/O Intr")
+}

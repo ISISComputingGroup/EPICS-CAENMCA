@@ -16,3 +16,4 @@ runIOC.bat
 runIOC.sh
 relPaths.sh
 .project
+CAENSerDes.log
