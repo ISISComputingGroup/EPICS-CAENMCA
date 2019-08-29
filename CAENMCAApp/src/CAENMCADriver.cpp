@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <math.h>
-#include <inttypes.h>
+#include <cstdint>
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
@@ -895,7 +895,8 @@ void CAENMCADriver::getLists(uint32_t channel_id)
 #endif
         if (nevts > 0)
 		{
-			fprintf(stdout, "Channel %" PRIu32 " Events: %" PRIu32 " (max: %" PRIu32 ") Filename: %s\n", channel_id, nevts, maxnevts, filename);
+			fprintf(stdout, "Channel %lu Events: %lu (max: %lu) Filename: %s\n", 
+			    (unsigned long)channel_id, (unsigned long)nevts, (unsigned long)maxnevts, filename);
 		}
 #if 0
 		fprintf(stdout, "First 10 events received:\n");
