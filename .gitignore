@@ -11,9 +11,10 @@ O.*/
 /templates/
 cdCommands
 envPaths
-dllPath.bat
+dllPath*.bat
 runIOC.bat
 runIOC.sh
 relPaths.sh
 .project
 CAENSerDes.log
+NULL
