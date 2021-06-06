@@ -1,7 +1,87 @@
 	
-record(ai, "$(P)$(Q)HV$(CHAN):VMON")
+record(ai, "$(P)$(Q)HV$(CHAN):V")
 {
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)VMON")
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)HV$(CHAN):V:SP:RBV")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)VSET")
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)HV$(CHAN):V:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)VSET")
+}
+
+record(ai, "$(P)$(Q)HV$(CHAN):I")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)IMON")
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)HV$(CHAN):I:SP:RBV")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ISET")
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)HV$(CHAN):I:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ISET")
+}
+
+record(ai, "$(P)$(Q)HV$(CHAN):T")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)TMON")
+	field(SCAN, "I/O Intr")
+}
+
+record(bi, "$(P)$(Q)HV$(CHAN):POWER")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)HVON")
+	field(SCAN, "I/O Intr")
+	field(ZNAM, "Off")
+	field(ONAM, "On")
+}
+
+record(bo, "$(P)$(Q)HV$(CHAN):POWER:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)HVON")
+	field(ZNAM, "Off")
+	field(ONAM, "On")
+}
+
+record(bi, "$(P)$(Q)HV$(CHAN):POLARITY")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)HVPOLARITY")
+	field(ZNAM, "Positive")
+	field(ONAM, "Negative")
+	field(SCAN, "I/O Intr")
+}
+
+record(stringin, "$(P)$(Q)HV$(CHAN):RANGE")
+{
+    field(DTYP, "asynOctetRead")
+	field(INP, "@asyn($(PORT),$(CHAN),0)HVRANGENAME")
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)HV$(CHAN):HVSTAT")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)HVSTATUS")
 	field(SCAN, "I/O Intr")
 }

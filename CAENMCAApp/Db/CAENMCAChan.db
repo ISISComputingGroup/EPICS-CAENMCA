@@ -14,10 +14,109 @@ record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:CNTS")
 	field(SCAN, "I/O Intr")
 }
 
+record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:NUM")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NUMENERGYSPEC")
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:NBINS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECNBINS")
+	field(SCAN, "I/O Intr")
+}
+
+record(longout, "$(P)$(Q)C$(CHAN):ENERGYSPEC:NBINS:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECNBINS")
+}
+
+record(stringin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE")
+{
+    field(DTYP, "asynOctetRead")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECFILENAME")
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:REALTIME")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECREALTIME")
+	field(PREC, 1)
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:LIVETIME")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECLIVETIME")
+	field(PREC, 1)
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:DEADTIME")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECDEADTIME")
+	field(PREC, 1)
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:OVERFLOWS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECOVERFLOWS")
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:UNDERFLOWS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECUNDERFLOWS")
+	field(SCAN, "I/O Intr")
+}
+
+# internally this is stored in milliseconds, hence PREC of 3
+record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:AUTOSAVE")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECAUTOSAVE")
+	field(PREC, 3)
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:AUTOSAVE:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECAUTOSAVE")
+	field(PREC, 3)
+}
+
 record(longin, "$(P)$(Q)C$(CHAN):NEVENTS")
 {
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTS")
+	field(SCAN, "I/O Intr")
+}
+
+record(bi, "$(P)$(Q)C$(CHAN):ENABLED")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)CHANENABLED")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+	field(SCAN, "I/O Intr")
+}
+
+record(bi, "$(P)$(Q)C$(CHAN):POLARITY")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)CHANPOLARITY")
+	field(ZNAM, "Positive")
+	field(ONAM, "Negative")
 	field(SCAN, "I/O Intr")
 }
 
@@ -37,3 +136,79 @@ record(waveform, "$(P)$(Q)C$(CHAN):LISTFILE")
 	field(FTVL, "CHAR")
 	field(SCAN, "I/O Intr")
 }
+
+# if doesn't matter if we send 0 or 1, the asyn addr $(CHAN)
+# tells us which channel to use. There is the special case of passing 3
+# to mean both channels which is used in CAENMCA.db for a global start/stop
+# of all channels 
+record(bo, "$(P)$(Q)C$(CHAN):START:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ACQSTART")
+}
+
+record(bo, "$(P)$(Q)C$(CHAN):STOP:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ACQSTOP")
+}
+
+record(bi, "$(P)$(Q)C$(CHAN):ACQ:RUNNING")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),0,0)ACQRUNNINGCH")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+	field(SCAN, "I/O Intr")
+}
+
+record(bi, "$(P)$(Q)C$(CHAN):ACQ:INIT")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),0,0)ACQINIT")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):ACQ:STARTMODE")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),0,0)ACQSTARTMODE")
+	field(SCAN, "I/O Intr")
+}
+
+record(mbbo, "$(P)$(Q)C$(CHAN):LISTMODE:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),0,0)LISTSAVEMODE")
+	field(ZRVL, "0")
+	field(ZRST, "ASCII")
+	field(ONVL, "1")
+	field(ONST, "Binary")
+	field(TWVL, "2")
+	field(TWST, "Memory")
+}
+
+record(mbbi, "$(P)$(Q)C$(CHAN):LISTMODE")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),0,0)LISTSAVEMODE")
+	field(ZRVL, "0")
+	field(ZRST, "ASCII")
+	field(ONVL, "1")
+	field(ONST, "Binary")
+	field(TWVL, "2")
+	field(TWST, "Memory")
+	field(SCAN, "I/O Intr")
+}
+
+record(bi, "$(P)$(Q)C$(CHAN):LISTENABLED")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),0,0)LISTENABLED")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+	field(SCAN, "I/O Intr")
+}
+

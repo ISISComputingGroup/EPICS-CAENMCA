@@ -42,8 +42,8 @@ private:
 	bool isHVOn(CAEN_MCA_HANDLE hvchan);
 	bool isAcqRunning();
 	bool isAcqRunning(CAEN_MCA_HANDLE chan);
-	void startAcquisition(int chan_mask);
-	void stopAcquisition(int chan_mask);
+	void startAcquisition(int addr, int value);
+	void stopAcquisition(int addr, int value);
 	void controlAcquisition(int chan_mask, bool start);
 	void getBoardInfo();
 	void getChannelInfo(int32_t channel_id);
@@ -63,15 +63,46 @@ private:
     CAEN_MCA_HANDLE getSpectrumHandle(CAEN_MCA_HANDLE channel, int32_t spectrum_id);
     void setEnergySpectrumFilename(int32_t channel_id, int32_t spectrum_id, const char* filename);
     void setEnergySpectrumNumBins(int32_t channel_id, int32_t spectrum_id, int nbins);
+    void setListModeType(int32_t channel_id,  CAEN_MCA_ListSaveMode_t mode);
+    void setEnergySpectrumAutosave(int32_t channel_id, int32_t spectrum_id, double period);
+    void setListModeEnable(int32_t channel_id,  bool enable);
 
 #define FIRST_CAEN_PARAM P_deviceName
 
 	int P_deviceName; // string
-	int P_energySpec; // int array
+    int P_availableConfigurations; // string
+    int P_configuration; // string
+	int P_numEnergySpec; // int
+ 	int P_energySpec; // int array
 	int P_energySpecCounts; // int
+	int P_energySpecNBins; // int
+	int P_energySpecFilename; // string
+    int P_energySpecRealtime; // float
+	int P_energySpeclivetime; // float
+	int P_energySpecdeadtime; // float
+	int P_energySpecOverflows; // int
+    int P_energySpecUnderflows; // int
+    int P_energySpecAutosave; // double
 	int P_nEvents; // int
 	int P_vmon; // double
+	int P_vset; // double
+	int P_imon; // double
+	int P_iset; // double
+	int P_tmon; // double
+	int P_hvPolarity; // int
+	int P_hvStatus; // int
+    int P_hvRangeName; // string
+	int P_chanEnabled; // int
+	int P_chanPolarity; // int
 	int P_listFile; // string
+	int P_listEnabled; // int
+    int P_listSaveMode; // int
+    int P_acqRunning; // int
+    int P_acqRunningCh; // int
+    int P_hvOn; // int
+    int P_restart; // int
+	int P_acqInit; // int
+	int P_acqStartMode; // int
 	int P_startAcquisition; // int
 	int P_stopAcquisition; // int
 
@@ -87,12 +118,40 @@ private:
 };
 
 #define P_deviceNameString "DEVICE"
-#define P_vmonString "VMON"
+#define P_availableConfigurationsString "CONFIG_AVAIL"
+#define P_configurationString   "CONFIG"
+#define P_numEnergySpecString "NUMENERGYSPEC"
 #define P_energySpecString "ENERGYSPEC"
-#define P_nEventsString "NEVENTS"
-#define P_listFileString "LISTFILE"
 #define P_energySpecCountsString "ENERGYSPECCOUNTS"
-#define P_startAcquisitionString "START"
-#define P_stopAcquisitionString "STOP"
+#define P_energySpecNBinsString "ENERGYSPECNBINS"
+#define P_energySpecFilenameString  "ENERGYSPECFILENAME"
+#define P_energySpecRealtimeString "ENERGYSPECREALTIME"
+#define P_energySpeclivetimeString "ENERGYSPECLIVETIME"
+#define P_energySpecdeadtimeString "ENERGYSPECDEADTIME"
+#define P_energySpecOverflowsString "ENERGYSPECOVERFLOWS"
+#define P_energySpecUnderflowsString "ENERGYSPECUNDERFLOWS"
+#define P_energySpecAutosaveString "ENERGYSPECAUTOSAVE"
+#define P_nEventsString "NEVENTS"
+#define P_vmonString "VMON"
+#define P_vsetString "VSET"
+#define P_imonString "IMON"
+#define P_isetString "ISET"
+#define P_tmonString "TMON"
+#define P_hvPolarityString "HVPOLARITY"
+#define P_hvStatusString "HVSTATUS"
+#define P_hvRangeNameString "HVRANGENAME"
+#define P_chanEnabledString "CHANENABLED"
+#define P_chanPolarityString "CHANPOLARITY"
+#define P_listFileString "LISTFILE"
+#define P_listEnabledString "LISTENABLED"
+#define P_listSaveModeString "LISTSAVEMODE"
+#define P_acqRunningString "ACQRUNNING"
+#define P_acqRunningChString "ACQRUNNINGCH"
+#define P_hvOnString "HVON"
+#define P_restartString "RESTART"
+#define P_acqInitString "ACQINIT"
+#define P_acqStartModeString "ACQSTARTMODE"
+#define P_startAcquisitionString "ACQSTART"
+#define P_stopAcquisitionString "ACQSTOP"
 
 #endif /* CAENMCADRIVER_H */
