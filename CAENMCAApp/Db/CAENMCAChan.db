@@ -7,6 +7,12 @@ record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC")
 	field(SCAN, "I/O Intr")
 }
 	
+record(bo, "$(P)$(Q)C$(CHAN):ENERGYSPEC:CLEAR:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECCLEAR")
+}
+
 record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:CNTS")
 {
     field(DTYP, "asynInt32")
@@ -41,12 +47,19 @@ record(stringin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE")
 	field(SCAN, "I/O Intr")
 }
 
+record(stringout, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE:SP")
+{
+    field(DTYP, "asynOctetWrite")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECFILENAME")
+}
+
 record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:REALTIME")
 {
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECREALTIME")
 	field(PREC, 1)
 	field(SCAN, "I/O Intr")
+	field(EGU, "s")
 }
 
 record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:LIVETIME")
@@ -55,6 +68,7 @@ record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:LIVETIME")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECLIVETIME")
 	field(PREC, 1)
 	field(SCAN, "I/O Intr")
+	field(EGU, "s")
 }
 
 record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:DEADTIME")
@@ -63,6 +77,7 @@ record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:DEADTIME")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECDEADTIME")
 	field(PREC, 1)
 	field(SCAN, "I/O Intr")
+	field(EGU, "%")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:OVERFLOWS")
@@ -82,17 +97,21 @@ record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:UNDERFLOWS")
 # internally this is stored in milliseconds, hence PREC of 3
 record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:AUTOSAVE")
 {
+    field(DESC, "autosave period")
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECAUTOSAVE")
 	field(PREC, 3)
 	field(SCAN, "I/O Intr")
+	field(EGU, "s")
 }
 
 record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:AUTOSAVE:SP")
 {
+    field(DESC, "set autosave period")
     field(DTYP, "asynFloat64")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECAUTOSAVE")
 	field(PREC, 3)
+	field(EGU, "s")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):NEVENTS")
@@ -109,6 +128,14 @@ record(bi, "$(P)$(Q)C$(CHAN):ENABLED")
 	field(ZNAM, "No")
 	field(ONAM, "Yes")
 	field(SCAN, "I/O Intr")
+}
+
+record(bo, "$(P)$(Q)C$(CHAN):ENABLED:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)CHANENABLED")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
 }
 
 record(bi, "$(P)$(Q)C$(CHAN):POLARITY")
@@ -135,6 +162,19 @@ record(waveform, "$(P)$(Q)C$(CHAN):LISTFILE")
 	field(NELM, 512)
 	field(FTVL, "CHAR")
 	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):LISTMODE:MAXNEVENTS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)LISTMAXNEVENTS")
+	field(SCAN, "I/O Intr")
+}
+
+record(longout, "$(P)$(Q)C$(CHAN):LISTMODE:MAXNEVENTS:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)LISTMAXNEVENTS")
 }
 
 # if doesn't matter if we send 0 or 1, the asyn addr $(CHAN)
@@ -212,3 +252,10 @@ record(bi, "$(P)$(Q)C$(CHAN):LISTENABLED")
 	field(SCAN, "I/O Intr")
 }
 
+record(bo, "$(P)$(Q)C$(CHAN):LISTENABLED:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),0,0)LISTENABLED")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+}

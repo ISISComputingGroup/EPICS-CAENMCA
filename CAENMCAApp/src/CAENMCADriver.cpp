@@ -266,6 +266,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 	createParam(P_availableConfigurationsString, asynParamOctet, &P_availableConfigurations);
 	createParam(P_configurationString, asynParamOctet, &P_configuration);
 	createParam(P_numEnergySpecString, asynParamInt32, &P_numEnergySpec);
+	createParam(P_energySpecClearString, asynParamInt32, &P_energySpecClear);
 	createParam(P_energySpecString, asynParamInt32Array, &P_energySpec);
 	createParam(P_energySpecCountsString, asynParamInt32, &P_energySpecCounts);
 	createParam(P_energySpecNBinsString, asynParamInt32, &P_energySpecNBins);
@@ -282,14 +283,19 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 	createParam(P_imonString, asynParamFloat64, &P_imon);
 	createParam(P_isetString, asynParamFloat64, &P_iset);
 	createParam(P_tmonString, asynParamFloat64, &P_tmon);
+	createParam(P_rampupString, asynParamFloat64, &P_rampup);
+	createParam(P_rampdownString, asynParamFloat64, &P_rampdown);
 	createParam(P_hvPolarityString, asynParamInt32, &P_hvPolarity);
 	createParam(P_hvStatusString, asynParamInt32, &P_hvStatus);
 	createParam(P_hvRangeNameString, asynParamOctet, &P_hvRangeName);
 	createParam(P_chanEnabledString, asynParamInt32, &P_chanEnabled);
 	createParam(P_chanPolarityString, asynParamInt32, &P_chanPolarity);	
+    createParam(P_chanMemFullString, asynParamInt32, &P_chanMemFull);
+    createParam(P_chanMemEmptyString, asynParamInt32, &P_chanMemEmpty);
 	createParam(P_listFileString, asynParamOctet, &P_listFile);
 	createParam(P_listEnabledString, asynParamInt32, &P_listEnabled);	
 	createParam(P_listSaveModeString, asynParamInt32, &P_listSaveMode);	
+	createParam(P_listMaxNEventsString, asynParamInt32, &P_listMaxNEvents);	
     createParam(P_acqRunningString, asynParamInt32, &P_acqRunning);
     createParam(P_acqRunningChString, asynParamInt32, &P_acqRunningCh);
 	createParam(P_hvOnString, asynParamInt32, &P_hvOn);	
@@ -461,7 +467,8 @@ bool CAENMCADriver::isAcqRunning(CAEN_MCA_HANDLE chan)
 void CAENMCADriver::getHVInfo(uint32_t hv_chan_id)
 {
     char hvrange_name[HVRANGEINFO_NAME_MAXLEN];
-	double vset_min, vset_max, vset_incr, vmax_max, vmax, vmon, imon, hvpol, hvstat, vset, iset, tmon, hv_active_range;
+	double vset_min, vset_max, vset_incr, vmax_max, vmax, vmon, imon;
+    double hvpol, hvstat, vset, iset, tmon, hv_active_range, rampup, rampdown;
     uint32_t nranges;
     int32_t polarity;
 	CAEN_MCA_HANDLE hvchannel = m_hv_chan_h[hv_chan_id];
@@ -496,6 +503,8 @@ void CAENMCADriver::getHVInfo(uint32_t hv_chan_id)
 	tmon = getParameterValue(hvrange, "PARAM_HVRANGE_TMON");
 	vmax = getParameterValue(hvrange, "PARAM_HVRANGE_VMAX");
 	imon = getParameterValue(hvrange, "PARAM_HVRANGE_IMON");
+	rampup = getParameterValue(hvrange, "PARAM_HVRANGE_RAMPUP");
+	rampdown = getParameterValue(hvrange, "PARAM_HVRANGE_RAMPDOWN");
 	hvpol = getParameterValue(hvchannel, "PARAM_HVCH_POLARITY");
 	hvstat = getParameterValue(hvchannel, "PARAM_HVCH_STATUS");
 	setDoubleParam(hv_chan_id, P_vmon, vmon);
@@ -503,6 +512,8 @@ void CAENMCADriver::getHVInfo(uint32_t hv_chan_id)
 	setDoubleParam(hv_chan_id, P_vset, vset);
 	setDoubleParam(hv_chan_id, P_iset, iset);
 	setDoubleParam(hv_chan_id, P_tmon, tmon);
+	setDoubleParam(hv_chan_id, P_rampdown, rampdown);
+	setDoubleParam(hv_chan_id, P_rampup, rampup);
     setStringParam(hv_chan_id, P_hvRangeName, hvrange_name); 
 	setIntegerParam(hv_chan_id, P_hvPolarity, hvpol); // CAEN_MCA_POLARITY_TYPE_POSITIVE=0, CAEN_MCA_POLARITY_TYPE_NEGATIVE=1
 	setIntegerParam(hv_chan_id, P_hvStatus, hvstat); 
@@ -589,6 +600,8 @@ void CAENMCADriver::getChannelInfo(int32_t channel_id)
     setIntegerParam(channel_id, P_numEnergySpec, nEnergySpectra);
 	setIntegerParam(channel_id, P_acqInit, (getParameterValue(channel, "PARAM_CH_ACQ_INIT") != 0.0 ? 1 : 0));
 	setIntegerParam(channel_id, P_acqStartMode, getParameterValue(channel, "PARAM_CH_STARTMODE"));
+	setIntegerParam(channel_id, P_chanMemFull, getParameterValue(channel, "PARAM_CH_MEMORY_FULL"));
+	setIntegerParam(channel_id, P_chanMemEmpty, getParameterValue(channel, "PARAM_CH_MEMORY_EMPTY"));
 }
 
 
@@ -777,12 +790,6 @@ void CAENMCADriver::setEnergySpectrumNumBins(int32_t channel_id, int32_t spectru
 	setParameterValue(getSpectrumHandle(channel_id, spectrum_id), "PARAM_ENERGY_SPECTRUM_NBINS", (double)nbins);
 }
 
-void CAENMCADriver::energySpectrumClear(CAEN_MCA_HANDLE channel, int32_t spectrum_id)
-{
-	CAEN_MCA_HANDLE spectrum = CAENMCA::GetChildHandle(channel, CAEN_MCA_HANDLE_ENERGYSPECTRUM, spectrum_id);
-	CAENMCA::SendCommand(spectrum, CAEN_MCA_CMD_ENERGYSPECTRUM_CLEAR, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
-}
-
 void CAENMCADriver::setEnergySpectrumParameter(CAEN_MCA_HANDLE channel, int32_t spectrum_id, const char* parname, double value)
 {
 	CAEN_MCA_HANDLE spectrum = CAENMCA::GetChildHandle(channel, CAEN_MCA_HANDLE_ENERGYSPECTRUM, spectrum_id);
@@ -934,13 +941,25 @@ asynStatus CAENMCADriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
         {
             setListModeEnable(addr, (value != 0 ? true : false));
         }
+		else if (function == P_chanEnabled)
+        {
+            setParameterValue(m_chan_h[addr], "PARAM_CH_ENABLED", (value != 0 ? 1 : 0));
+        }
 		else if (function == P_listSaveMode)
         {
             setListModeType(addr, static_cast<CAEN_MCA_ListSaveMode_t>(value));
         }
+		else if (function == P_listMaxNEvents)
+        {
+            CAENMCA::SetData(m_chan_h[addr], CAEN_MCA_DATA_LIST_MODE, DATAMASK_LIST_MAXNEVTS, value);
+        }
 		else if (function == P_energySpecNBins)
         {
             setEnergySpectrumNumBins(addr, 0, value);
+        }
+		else if (function == P_energySpecClear)
+        {
+            CAENMCA::SendCommand(getSpectrumHandle(addr, 0), CAEN_MCA_CMD_ENERGYSPECTRUM_CLEAR, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
         }
 		else if (function == P_restart)
         {
@@ -981,12 +1000,14 @@ void CAENMCADriver::getLists(uint32_t channel_id)
 		DATAMASK_LIST_FILENAME |
 		DATAMASK_LIST_FILE_DATAMASK |
 		DATAMASK_LIST_GETFAKEEVTS |
+        DATAMASK_LIST_MAXNEVTS |
 		DATAMASK_LIST_NEVTS,
 		&enabled,
 		&savemode,
 		filename,
 		&datamask,
 		&getfake,
+        &maxnevts,
         &nevts
 	);
     if (savemode == CAEN_MCA_SAVEMODE_MEMORY) {  
@@ -1014,10 +1035,11 @@ void CAENMCADriver::getLists(uint32_t channel_id)
     }
 	
 	setIntegerParam(channel_id, P_nEvents, nevts);
+	setIntegerParam(channel_id, P_listMaxNEvents, maxnevts);
 	setStringParam(channel_id, P_listFile, filename);
 	setIntegerParam(channel_id, P_listEnabled, enabled);
 	setIntegerParam(channel_id, P_listSaveMode, savemode);
-	
+    // set a parameter to datamask	
 }
 
 
