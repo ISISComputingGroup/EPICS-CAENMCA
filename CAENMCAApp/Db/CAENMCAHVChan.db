@@ -1,49 +1,88 @@
 	
 record(ai, "$(P)$(Q)HV$(CHAN):V")
 {
+    field(DESC, "Voltage")
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)VMON")
 	field(SCAN, "I/O Intr")
+	field(PREC, 3)
+	field(EGU, "V")
+}
+
+record(ai, "$(P)$(Q)HV$(CHAN):RAMPUP")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)RAMPUP")
+	field(SCAN, "I/O Intr")
+	field(PREC, 3)
+	field(EGU, "V")
+}
+
+record(ai, "$(P)$(Q)HV$(CHAN):RAMPDOWN")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)RAMPDOWN")
+	field(SCAN, "I/O Intr")
+	field(PREC, 3)
+	field(EGU, "V")
 }
 
 record(ai, "$(P)$(Q)HV$(CHAN):V:SP:RBV")
 {
+    field(DESC, "Voltage Setpoint RBV")
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)VSET")
 	field(SCAN, "I/O Intr")
+	field(PREC, 3)
+	field(EGU, "V")
 }
 
 record(ao, "$(P)$(Q)HV$(CHAN):V:SP")
 {
+    field(DESC, "Voltage Setpoint")
     field(DTYP, "asynFloat64")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)VSET")
+	field(PREC, 3)
+	field(EGU, "V")
 }
 
 record(ai, "$(P)$(Q)HV$(CHAN):I")
 {
+    field(DESC, "Current")
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)IMON")
 	field(SCAN, "I/O Intr")
+	field(PREC, 3)
+	field(EGU, "uA")
 }
 
 record(ai, "$(P)$(Q)HV$(CHAN):I:SP:RBV")
 {
+    field(DESC, "Currrent Setpoint RBV")
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ISET")
 	field(SCAN, "I/O Intr")
+	field(PREC, 3)
+	field(EGU, "uA")
 }
 
 record(ao, "$(P)$(Q)HV$(CHAN):I:SP")
 {
+    field(DESC, "Currrent Setpoint")
     field(DTYP, "asynFloat64")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ISET")
+	field(EGU, "uA")
+	field(PREC, 3)
 }
 
 record(ai, "$(P)$(Q)HV$(CHAN):T")
 {
+    field(DESC, "Temperature")
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)TMON")
 	field(SCAN, "I/O Intr")
+	field(EGU, "K")
+	field(PREC, 1)
 }
 
 record(bi, "$(P)$(Q)HV$(CHAN):POWER")

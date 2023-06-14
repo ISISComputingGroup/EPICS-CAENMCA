@@ -55,7 +55,6 @@ private:
     void setListModeFilename(int32_t channel_id, const char* filename);	
 	template <typename T> void setData(CAEN_MCA_HANDLE handle, CAEN_MCA_DataType_t dataType, uint64_t dataMask, T value);
 	void setListsData(CAEN_MCA_HANDLE channel, bool timetag, bool energy, bool extras);
-	void energySpectrumClear(CAEN_MCA_HANDLE channel, int32_t spectrum_id);
 	void setEnergySpectrumParameter(CAEN_MCA_HANDLE channel, int32_t spectrum_id, const char* parname, double value);
 	void getEnergySpectrum(int32_t channel_id, int32_t spectrum_id, std::vector<epicsInt32>& data);
 	template <typename T> void energySpectrumSetProperty(CAEN_MCA_HANDLE channel, int32_t spectrum_id, int prop, T value);
@@ -83,20 +82,26 @@ private:
 	int P_energySpecOverflows; // int
     int P_energySpecUnderflows; // int
     int P_energySpecAutosave; // double
+    int P_energySpecClear; // int
 	int P_nEvents; // int
 	int P_vmon; // double
 	int P_vset; // double
 	int P_imon; // double
 	int P_iset; // double
 	int P_tmon; // double
+	int P_rampup; // double
+	int P_rampdown; // double
 	int P_hvPolarity; // int
 	int P_hvStatus; // int
     int P_hvRangeName; // string
 	int P_chanEnabled; // int
 	int P_chanPolarity; // int
+    int P_chanMemFull; // int
+    int P_chanMemEmpty; // int
 	int P_listFile; // string
 	int P_listEnabled; // int
     int P_listSaveMode; // int
+    int P_listMaxNEvents; // int
     int P_acqRunning; // int
     int P_acqRunningCh; // int
     int P_hvOn; // int
@@ -122,6 +127,7 @@ private:
 #define P_configurationString   "CONFIG"
 #define P_numEnergySpecString "NUMENERGYSPEC"
 #define P_energySpecString "ENERGYSPEC"
+#define P_energySpecClearString "ENERGYSPECCLEAR"
 #define P_energySpecCountsString "ENERGYSPECCOUNTS"
 #define P_energySpecNBinsString "ENERGYSPECNBINS"
 #define P_energySpecFilenameString  "ENERGYSPECFILENAME"
@@ -137,14 +143,19 @@ private:
 #define P_imonString "IMON"
 #define P_isetString "ISET"
 #define P_tmonString "TMON"
+#define P_rampupString "RAMPUP"
+#define P_rampdownString "RAMPDOWN"
 #define P_hvPolarityString "HVPOLARITY"
 #define P_hvStatusString "HVSTATUS"
 #define P_hvRangeNameString "HVRANGENAME"
 #define P_chanEnabledString "CHANENABLED"
 #define P_chanPolarityString "CHANPOLARITY"
+#define P_chanMemFullString "CHANMEMFULL"
+#define P_chanMemEmptyString "CHANMEMEMPTY"
 #define P_listFileString "LISTFILE"
 #define P_listEnabledString "LISTENABLED"
 #define P_listSaveModeString "LISTSAVEMODE"
+#define P_listMaxNEventsString  "LISTMAXNEVENTS"
 #define P_acqRunningString "ACQRUNNING"
 #define P_acqRunningChString "ACQRUNNINGCH"
 #define P_hvOnString "HVON"
