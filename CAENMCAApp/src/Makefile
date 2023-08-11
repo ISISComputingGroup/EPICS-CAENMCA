@@ -16,6 +16,10 @@ CAENMCALIB = $(ICPBINARYDIR)/CAENMCA/Windows
 endif
 LIBRARY_IOC += CAENMCASup
 
+PROD_HOST += filereader
+filereader_SRC += filereader.cpp
+filereader_LIBS += $(EPICS_BASE_HOST_LIBS)
+
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
 # install CAENMCA.dbd into <top>/dbd

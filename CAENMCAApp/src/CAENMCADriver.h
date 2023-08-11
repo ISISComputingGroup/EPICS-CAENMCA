@@ -29,6 +29,12 @@ private:
     std::vector<CAEN_MCA_HANDLE> m_chan_h;
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
 	std::vector<epicsInt32> m_energy_spec[2];
+	std::vector<epicsFloat64> m_event_spec_x[2];
+	std::vector<epicsFloat64> m_event_spec_y[2];
+    std::vector<std::string> m_old_list_filename;
+    std::vector<FILE*> m_event_file_fd;
+    std::vector<int64_t> m_event_file_last_pos;
+    std::vector<uint64_t> m_frame_time; 
 	CAEN_MCA_BoardFamilyCode_t m_famcode;
 
 	double getParameterValue(CAEN_MCA_HANDLE handle, const char *name);
@@ -65,6 +71,7 @@ private:
     void setListModeType(int32_t channel_id,  CAEN_MCA_ListSaveMode_t mode);
     void setEnergySpectrumAutosave(int32_t channel_id, int32_t spectrum_id, double period);
     void setListModeEnable(int32_t channel_id,  bool enable);
+    void processListFile(int channel_id);
 
 #define FIRST_CAEN_PARAM P_deviceName
 
@@ -84,6 +91,12 @@ private:
     int P_energySpecAutosave; // double
     int P_energySpecClear; // int
 	int P_nEvents; // int
+ 	int P_eventsSpecY; // double array
+ 	int P_eventsSpecX; // double array
+ 	int P_eventsSpecNEvents; // int
+ 	int P_eventsSpecNTriggers; // int
+    int P_eventsSpecNBins; // int
+    int P_eventsSpecBinWidth; // double
 	int P_vmon; // double
 	int P_vset; // double
 	int P_imon; // double
@@ -164,5 +177,11 @@ private:
 #define P_acqStartModeString "ACQSTARTMODE"
 #define P_startAcquisitionString "ACQSTART"
 #define P_stopAcquisitionString "ACQSTOP"
+#define P_eventsSpecYString   "EVENTSPECY"
+#define P_eventsSpecXString   "EVENTSPECX"
+#define P_eventsSpecNEventsString  "EVENTSPECNEV"
+#define P_eventsSpecNTriggersString    "EVENTSPECNTRIG"
+#define P_eventsSpecNBinsString   "EVENTSPECNBINS"
+#define P_eventsSpecBinWidthString  "EVENTSPECBINW"
 
 #endif /* CAENMCADRIVER_H */
