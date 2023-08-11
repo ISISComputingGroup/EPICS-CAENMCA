@@ -19,6 +19,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <algorithm>
 #include <map>
 #include <sys/stat.h>
 
@@ -269,6 +270,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 	createParam(P_numEnergySpecString, asynParamInt32, &P_numEnergySpec);
 	createParam(P_energySpecClearString, asynParamInt32, &P_energySpecClear);
 	createParam(P_energySpecString, asynParamInt32Array, &P_energySpec);
+	createParam(P_energySpecTestString, asynParamInt32Array, &P_energySpecTest);
 	createParam(P_energySpecCountsString, asynParamInt32, &P_energySpecCounts);
 	createParam(P_energySpecNBinsString, asynParamInt32, &P_energySpecNBins);
     createParam(P_energySpecFilenameString, asynParamOctet, &P_energySpecFilename);
@@ -830,6 +832,7 @@ void CAENMCADriver::pollerTask()
             processListFile(i);
 		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
 		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
+		    doCallbacksInt32Array(&(m_energy_spec_test[i][0]), m_energy_spec_test[i].size(), P_energySpecTest, i);
 		    callParamCallbacks(i);
 		}
         setIntegerParam(P_acqRunning, (isAcqRunning() ? 1 : 0));
@@ -1140,11 +1143,18 @@ void CAENMCADriver::processListFile(int channel_id)
         return;
     }
     int64_t frame = 0, last_pos, current_pos = 0, new_bytes, nevents;
+    m_energy_spec_test[channel_id].resize(32768);
 	if (f != NULL)
 	{
 		current_pos = _ftelli64(f);
 	}
     std::string prefix = "\\\\130.246.55.0\\storage\\";
+    int nevents_real = 0, nbins = 0;
+    double binw = 1.0;
+    getIntegerParam(channel_id, P_eventsSpecNBins, &nbins);
+    getDoubleParam(channel_id, P_eventsSpecBinWidth, &binw);
+    m_event_spec_x[channel_id].resize(nbins);
+    m_event_spec_y[channel_id].resize(nbins);
     if (f == NULL || filename != m_old_list_filename[channel_id] || current_pos == -1 || current_pos != m_event_file_last_pos[channel_id])
     {
         std::string p_filename = prefix + filename;
@@ -1166,7 +1176,8 @@ void CAENMCADriver::processListFile(int channel_id)
         current_pos = 0;
         setIntegerParam(channel_id, P_eventsSpecNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNTriggers, 0);
-        m_event_spec_y[channel_id].fill(0.0);
+        std::fill(m_event_spec_y[channel_id].begin(), m_event_spec_y[channel_id].end(), 0.0);
+        std::fill(m_energy_spec_test[channel_id].begin(), m_energy_spec_test[channel_id].end(), 0);
     }
     if (_fseeki64(f, 0, SEEK_END) != 0)
     {
@@ -1195,12 +1206,6 @@ void CAENMCADriver::processListFile(int channel_id)
     {
         return;
     }
-    int nevents_real = 0, nbins = 0;
-    double binw = 1.0;
-    getIntegerParam(channel_id, P_eventsSpecNBins, &nbins);
-    getDoubleParam(channel_id, P_eventsSpecBinWidth, &binw);
-    m_event_spec_x[channel_id].resize(nbins);
-    m_event_spec_y[channel_id].resize(nbins);
     for(int i=0; i<nbins; ++i)
     {
         m_event_spec_x[channel_id][i] = i * binw;
@@ -1234,6 +1239,10 @@ void CAENMCADriver::processListFile(int channel_id)
             if (n >= 0 && n < nbins)
             {
                 m_event_spec_y[channel_id][n] += 1.0;
+            }
+            if (energy != 32767)
+            {
+                ++(m_energy_spec_test[channel_id][energy]);
             }
         }
         //std::cout << frame << ": " << trigger_time << "  " << trigger_time - m_frame_time[channel_id] << "  " << energy << "  (" << describeFlags(extras) << ")" << std::endl;

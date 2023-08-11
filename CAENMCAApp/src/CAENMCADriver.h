@@ -29,6 +29,7 @@ private:
     std::vector<CAEN_MCA_HANDLE> m_chan_h;
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
 	std::vector<epicsInt32> m_energy_spec[2];
+	std::vector<epicsInt32> m_energy_spec_test[2];
 	std::vector<epicsFloat64> m_event_spec_x[2];
 	std::vector<epicsFloat64> m_event_spec_y[2];
     std::vector<std::string> m_old_list_filename;
@@ -80,6 +81,7 @@ private:
     int P_configuration; // string
 	int P_numEnergySpec; // int
  	int P_energySpec; // int array
+ 	int P_energySpecTest; // int array
 	int P_energySpecCounts; // int
 	int P_energySpecNBins; // int
 	int P_energySpecFilename; // string
@@ -140,6 +142,7 @@ private:
 #define P_configurationString   "CONFIG"
 #define P_numEnergySpecString "NUMENERGYSPEC"
 #define P_energySpecString "ENERGYSPEC"
+#define P_energySpecTestString "ENERGYSPECTEST"
 #define P_energySpecClearString "ENERGYSPECCLEAR"
 #define P_energySpecCountsString "ENERGYSPECCOUNTS"
 #define P_energySpecNBinsString "ENERGYSPECNBINS"

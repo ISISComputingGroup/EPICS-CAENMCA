@@ -7,8 +7,10 @@ static std::string describeFlags(unsigned flags);
 
 int main(int argc, char* argv[])
 {
-    const char* filename = argv[1];
-    bool exit_when_done = (argc > 2 && atoi(argv[2]) != 0);
+    const char* input_filename = argv[1];
+    const char* output_filename = (argc > 2 ? argv[2] : "");
+    bool exit_when_done = (argc > 3 && atoi(argv[3]) != 0);
+    bool caen_ascii_format = (argc > 4 && atoi(argv[4]) != 0);
     uint64_t trigger_time, frame_time;
     int16_t energy;
     uint32_t extras;
@@ -18,12 +20,20 @@ int main(int argc, char* argv[])
         std::cerr << "size error" << std::endl;
         return 0;
     }
-    FILE* f;
-    while( (f = _fsopen(filename, "rb", _SH_DENYNO)) == NULL )
+    FILE *f, *out_f;
+    if (strlen(output_filename) > 0) {
+        out_f = _fsopen(output_filename, "wb", _SH_DENYNO); // we use "b" as cae files are LF not CRLF
+    } else {
+        out_f = stdout;
+    }
+    while( (f = _fsopen(input_filename, "rb", _SH_DENYNO)) == NULL )
     {
         epicsThreadSleep(1.0);
     }
     int64_t frame = 0, last_pos, current_pos, new_bytes, nevents;
+    if (caen_ascii_format) {
+        fprintf(out_f, "TIMETAG\t\tENERGY\tFLAGS\t\n");
+    }
     do
     {
         if ( (last_pos = _ftelli64(f)) == -1 )
@@ -50,6 +60,7 @@ int main(int argc, char* argv[])
         nevents = new_bytes / EVENT_SIZE;
         if (nevents == 0)
         {
+            fflush(out_f);
             epicsThreadSleep(1.0);
             continue;
         }
@@ -75,10 +86,16 @@ int main(int argc, char* argv[])
                 ++frame;
                 frame_time = trigger_time;
             }
-            std::cout << frame << ": " << trigger_time << "  " << trigger_time - frame_time << "  " << energy << "  (" << describeFlags(extras) << ")" << std::endl;
+            if (caen_ascii_format) {
+                fprintf(out_f, "%llu\t%d\t0x%08x\t\n", trigger_time, energy, extras);
+            } else {
+                fprintf(out_f, "frame %llu: %llu %d ( %s )\r\n", trigger_time, trigger_time - frame_time, energy, describeFlags(extras).c_str());
+            }
         }
     } while(!exit_when_done);
     fclose(f);
+    fflush(out_f);
+    fclose(out_f);
     return 0;
 }
 

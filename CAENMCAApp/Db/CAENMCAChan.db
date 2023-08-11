@@ -7,6 +7,15 @@ record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC")
 	field(SCAN, "I/O Intr")
 }
 	
+record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPECTEST")
+{
+    field(DTYP, "asynInt32ArrayIn")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECTEST")
+	field(NELM, 32768)
+	field(FTVL, "LONG")
+	field(SCAN, "I/O Intr")
+}
+
 record(bo, "$(P)$(Q)C$(CHAN):ENERGYSPEC:CLEAR:SP")
 {
     field(DTYP, "asynInt32")
