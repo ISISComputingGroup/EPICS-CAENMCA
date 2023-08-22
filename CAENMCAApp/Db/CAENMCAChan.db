@@ -7,6 +7,15 @@ record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC")
 	field(SCAN, "I/O Intr")
 }
 	
+record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPECTEST")
+{
+    field(DTYP, "asynInt32ArrayIn")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECTEST")
+	field(NELM, 32768)
+	field(FTVL, "LONG")
+	field(SCAN, "I/O Intr")
+}
+
 record(bo, "$(P)$(Q)C$(CHAN):ENERGYSPEC:CLEAR:SP")
 {
     field(DTYP, "asynInt32")
@@ -196,7 +205,7 @@ record(bo, "$(P)$(Q)C$(CHAN):STOP:SP")
 record(bi, "$(P)$(Q)C$(CHAN):ACQ:RUNNING")
 {
     field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),0,0)ACQRUNNINGCH")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ACQRUNNINGCH")
 	field(ZNAM, "No")
 	field(ONAM, "Yes")
 	field(SCAN, "I/O Intr")
@@ -205,7 +214,7 @@ record(bi, "$(P)$(Q)C$(CHAN):ACQ:RUNNING")
 record(bi, "$(P)$(Q)C$(CHAN):ACQ:INIT")
 {
     field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),0,0)ACQINIT")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ACQINIT")
 	field(ZNAM, "No")
 	field(ONAM, "Yes")
 	field(SCAN, "I/O Intr")
@@ -214,14 +223,14 @@ record(bi, "$(P)$(Q)C$(CHAN):ACQ:INIT")
 record(longin, "$(P)$(Q)C$(CHAN):ACQ:STARTMODE")
 {
     field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),0,0)ACQSTARTMODE")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ACQSTARTMODE")
 	field(SCAN, "I/O Intr")
 }
 
 record(mbbo, "$(P)$(Q)C$(CHAN):LISTMODE:SP")
 {
     field(DTYP, "asynInt32")
-	field(OUT, "@asyn($(PORT),0,0)LISTSAVEMODE")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)LISTSAVEMODE")
 	field(ZRVL, "0")
 	field(ZRST, "ASCII")
 	field(ONVL, "1")
@@ -233,7 +242,7 @@ record(mbbo, "$(P)$(Q)C$(CHAN):LISTMODE:SP")
 record(mbbi, "$(P)$(Q)C$(CHAN):LISTMODE")
 {
     field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),0,0)LISTSAVEMODE")
+	field(INP, "@asyn($(PORT),$(CHAN),0)LISTSAVEMODE")
 	field(ZRVL, "0")
 	field(ZRST, "ASCII")
 	field(ONVL, "1")
@@ -246,7 +255,7 @@ record(mbbi, "$(P)$(Q)C$(CHAN):LISTMODE")
 record(bi, "$(P)$(Q)C$(CHAN):LISTENABLED")
 {
     field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),0,0)LISTENABLED")
+	field(INP, "@asyn($(PORT),$(CHAN),0)LISTENABLED")
 	field(ZNAM, "No")
 	field(ONAM, "Yes")
 	field(SCAN, "I/O Intr")
@@ -255,7 +264,71 @@ record(bi, "$(P)$(Q)C$(CHAN):LISTENABLED")
 record(bo, "$(P)$(Q)C$(CHAN):LISTENABLED:SP")
 {
     field(DTYP, "asynInt32")
-	field(OUT, "@asyn($(PORT),0,0)LISTENABLED")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)LISTENABLED")
 	field(ZNAM, "No")
 	field(ONAM, "Yes")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NBINS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNBINS")
+	field(SCAN, "I/O Intr")
+}
+
+record(longout, "$(P)$(Q)C$(CHAN):EVENTSPEC:NBINS:SP")
+{
+    field(DTYP, "asynInt32")
+	field(VAL, "1000")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECNBINS")
+	field(PINI, "YES")
+	info(autosaveFields, "VAL")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTRIG")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTRIG")
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:BINW")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECBINW")
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC:BINW:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(VAL, "10")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECBINW")
+	field(PINI, "YES")
+	info(autosaveFields, "VAL")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NEV")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNEV")
+	field(SCAN, "I/O Intr")
+}
+
+record(waveform, "$(P)$(Q)C$(CHAN):EVENTSPEC:X")
+{
+    field(DTYP, "asynFloat64ArrayIn")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECX")
+	field(NELM, 10000)
+	field(FTVL, "DOUBLE")
+	field(SCAN, "I/O Intr")
+}
+
+record(waveform, "$(P)$(Q)C$(CHAN):EVENTSPEC:Y")
+{
+    field(DTYP, "asynFloat64ArrayIn")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECY")
+	field(NELM, 10000)
+	field(FTVL, "DOUBLE")
+	field(SCAN, "I/O Intr")
 }

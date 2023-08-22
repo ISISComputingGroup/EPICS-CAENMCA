@@ -18,7 +18,10 @@
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <algorithm>
 #include <map>
+#include <sys/stat.h>
 
 #include <epicsTypes.h>
 #include <epicsTime.h>
@@ -257,8 +260,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 		1, /* Autoconnect */
 		0, /* Default priority */
 		0),	/* Default stack size*/
-	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL)
-
+	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_event_file_fd(2, NULL),m_event_file_last_pos(2, 0),m_frame_time(2, 0)
 {
 	const char *functionName = "CAENMCADriver";
 
@@ -268,6 +270,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 	createParam(P_numEnergySpecString, asynParamInt32, &P_numEnergySpec);
 	createParam(P_energySpecClearString, asynParamInt32, &P_energySpecClear);
 	createParam(P_energySpecString, asynParamInt32Array, &P_energySpec);
+	createParam(P_energySpecTestString, asynParamInt32Array, &P_energySpecTest);
 	createParam(P_energySpecCountsString, asynParamInt32, &P_energySpecCounts);
 	createParam(P_energySpecNBinsString, asynParamInt32, &P_energySpecNBins);
     createParam(P_energySpecFilenameString, asynParamOctet, &P_energySpecFilename);
@@ -304,6 +307,12 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 	createParam(P_restartString, asynParamInt32, &P_restart);
 	createParam(P_startAcquisitionString, asynParamInt32, &P_startAcquisition);
 	createParam(P_stopAcquisitionString, asynParamInt32, &P_stopAcquisition);	
+ 	createParam(P_eventsSpecYString, asynParamFloat64Array, &P_eventsSpecY);
+ 	createParam(P_eventsSpecXString, asynParamFloat64Array, &P_eventsSpecX);
+ 	createParam(P_eventsSpecNEventsString, asynParamInt32, &P_eventsSpecNEvents);
+ 	createParam(P_eventsSpecNTriggersString, asynParamInt32, &P_eventsSpecNTriggers);
+    createParam(P_eventsSpecNBinsString, asynParamInt32, &P_eventsSpecNBins);
+    createParam(P_eventsSpecBinWidthString, asynParamFloat64, &P_eventsSpecBinWidth);
     
 
 	setStringParam(P_deviceName, deviceName);
@@ -820,6 +829,10 @@ void CAENMCADriver::pollerTask()
             getHVInfo(i);
             getChannelInfo(i);
 		    getLists(i);
+            processListFile(i);
+		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
+		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
+		    doCallbacksInt32Array(&(m_energy_spec_test[i][0]), m_energy_spec_test[i].size(), P_energySpecTest, i);
 		    callParamCallbacks(i);
 		}
         setIntegerParam(P_acqRunning, (isAcqRunning() ? 1 : 0));
@@ -1042,6 +1055,207 @@ void CAENMCADriver::getLists(uint32_t channel_id)
     // set a parameter to datamask	
 }
 
+static std::string describeFlags(unsigned flags)
+{
+    std::string s;
+    if (flags & 0x1)
+    {
+        s += "First event after a dead time occurrence, ";
+        flags &= ~0x1;
+    }
+    if (flags & 0x2)
+    {
+        s += "Time tag rollover, ";
+        flags &= ~0x2;
+    }
+    if (flags & 0x4)
+    {
+        s += "Time tag reset, ";
+        flags &= ~0x4;
+    }
+    if (flags & 0x8)
+    {
+        s += "Fake event, ";
+        flags &= ~0x8;
+    }
+    if (flags & 0x80)
+    {
+        s += "Event energy saturated, ";
+        flags &= ~0x80;
+    }
+    if (flags & 0x400)
+    {
+        s += "Input dynamics saturated event, ";
+        flags &= ~0x400;
+    }
+    if (flags & 0x8000)
+    {
+        s += "Pile up event, ";
+        flags &= ~0x8000;
+    }
+    if (flags & 0x10000)
+    {
+        s += "Deadtime calc event, ";
+        flags &= ~0x10000;
+    }
+    if (flags & 0x20000)
+    {
+        s += "Event energy is outside the SCA interval, ";
+        flags &= ~0x20000;
+    }
+    if (flags & 0x40000)
+    {
+        s += "Event occurred during saturation inhibit, ";
+        flags &= ~0x40000;
+    }
+    if (flags != 0)
+    {
+        s += "Unknown flag";
+    }
+    return s;
+}
+
+void CAENMCADriver::processListFile(int channel_id)
+{
+    std::string filename;
+    int enabled, save_mode;
+	getStringParam(channel_id, P_listFile, filename);
+	getIntegerParam(channel_id, P_listEnabled, &enabled);
+	getIntegerParam(channel_id, P_listSaveMode, &save_mode);
+    uint64_t trigger_time;
+    int16_t energy;
+    uint32_t extras;
+    const size_t EVENT_SIZE = 14;
+    struct stat stat_struct;
+    FILE*& f = m_event_file_fd[channel_id];
+    if ( (sizeof(trigger_time) + sizeof(energy) + sizeof(extras)) != EVENT_SIZE )
+    {
+        std::cerr << "size error" << std::endl;
+        return;
+    }
+    if (!enabled || save_mode != CAEN_MCA_SAVEMODE_FILE_BINARY)
+    {
+        if (f != NULL)
+        {
+            fclose(f);
+            f = NULL;
+        }
+        return;
+    }
+    int64_t frame = 0, last_pos, current_pos = 0, new_bytes, nevents;
+    m_energy_spec_test[channel_id].resize(32768);
+	if (f != NULL)
+	{
+		current_pos = _ftelli64(f);
+	}
+    std::string prefix = "\\\\130.246.55.0\\storage\\";
+    int nevents_real = 0, nbins = 0;
+    double binw = 1.0;
+    getIntegerParam(channel_id, P_eventsSpecNBins, &nbins);
+    getDoubleParam(channel_id, P_eventsSpecBinWidth, &binw);
+    m_event_spec_x[channel_id].resize(nbins);
+    m_event_spec_y[channel_id].resize(nbins);
+    if (f == NULL || filename != m_old_list_filename[channel_id] || current_pos == -1 || current_pos != m_event_file_last_pos[channel_id])
+    {
+        std::string p_filename = prefix + filename;
+        if (f != NULL)
+        {
+            fclose(f);
+            f = NULL;
+        }
+        if (stat(p_filename.c_str(), &stat_struct) != 0 || stat_struct.st_size == 0)
+        {
+            return;
+        }
+        if ( (f = _fsopen(p_filename.c_str(), "rb", _SH_DENYNO)) == NULL )
+        {
+            return;
+        }
+        m_old_list_filename[channel_id] = filename;
+        m_event_file_last_pos[channel_id] = 0;
+        current_pos = 0;
+        setIntegerParam(channel_id, P_eventsSpecNEvents, 0);
+        setIntegerParam(channel_id, P_eventsSpecNTriggers, 0);
+        std::fill(m_event_spec_y[channel_id].begin(), m_event_spec_y[channel_id].end(), 0.0);
+        std::fill(m_energy_spec_test[channel_id].begin(), m_energy_spec_test[channel_id].end(), 0);
+    }
+    if (_fseeki64(f, 0, SEEK_END) != 0)
+    {
+        std::cerr << "fseek forward error" << std::endl;
+        return;
+    }   
+    if ( (current_pos = _ftelli64(f)) == -1)
+    {
+        std::cerr << "ftell curr error" << std::endl;
+        return;
+    }
+    if (_fseeki64(f, m_event_file_last_pos[channel_id], SEEK_SET) != 0)
+    {
+        std::cerr << "fseek back error" << std::endl;
+        return;
+    }   
+    new_bytes = current_pos - m_event_file_last_pos[channel_id];
+	if (new_bytes < 0)
+	{
+		fclose(f);
+		f = NULL;
+		return;
+	}
+    nevents = new_bytes / EVENT_SIZE;
+    if (nevents == 0)
+    {
+        return;
+    }
+    for(int i=0; i<nbins; ++i)
+    {
+        m_event_spec_x[channel_id][i] = i * binw;
+    }
+    for(int i=0; i<nevents; ++i)
+    {
+        if (fread(&trigger_time, sizeof(trigger_time), 1, f) != 1)
+        {
+            std::cerr << "fread time error" << std::endl;
+            return;
+        }
+        if (fread(&energy, sizeof(energy), 1, f) != 1)
+        {
+            std::cerr << "fread energy error" << std::endl;
+            return;
+        }
+        if (fread(&extras, sizeof(extras), 1, f) != 1)
+        {
+            std::cerr << "fread extras error" << std::endl;
+            return;
+        }
+        if (extras == 0x8 && energy == 0)
+        {
+            ++frame;
+            m_frame_time[channel_id] = trigger_time;
+        }
+        if ( energy > 0 && (!(extras & 0x8)) )
+        {
+            ++nevents_real;
+            int n = (trigger_time - m_frame_time[channel_id]) / binw;
+            if (n >= 0 && n < nbins)
+            {
+                m_event_spec_y[channel_id][n] += 1.0;
+            }
+            if (energy != 32767)
+            {
+                ++(m_energy_spec_test[channel_id][energy]);
+            }
+        }
+        //std::cout << frame << ": " << trigger_time << "  " << trigger_time - m_frame_time[channel_id] << "  " << energy << "  (" << describeFlags(extras) << ")" << std::endl;
+    }
+	m_event_file_last_pos[channel_id] = _ftelli64(f);
+    int ival;
+    getIntegerParam(channel_id, P_eventsSpecNEvents, &ival);
+    setIntegerParam(channel_id, P_eventsSpecNEvents, ival + nevents_real);
+    getIntegerParam(channel_id, P_eventsSpecNTriggers, &ival);
+    setIntegerParam(channel_id, P_eventsSpecNTriggers, ival + frame);
+    
+    return;
+}
 
 extern "C" {
 
