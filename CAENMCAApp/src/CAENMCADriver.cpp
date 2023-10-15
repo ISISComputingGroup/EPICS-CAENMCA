@@ -42,6 +42,13 @@
 
 #include "CAENMCADriver.h"
 
+#ifndef _WIN32
+#define _fsopen(a,b,c) fopen(a,b)
+#define _ftelli64 ftell
+#define _fseeki64 fseek
+#endif /* ndef _WIN32 */
+
+
 static const char *driverName = "CAENMCADriver"; ///< Name of driver for use in message printing 
 
 /// EPICS driver report function for iocsh dbior command

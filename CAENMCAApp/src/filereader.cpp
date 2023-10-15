@@ -1,7 +1,15 @@
 #include <iostream>
 #include <cstdlib>
 #include <string>
+#include <cstring>
 #include <epicsThread.h>
+
+#ifndef _WIN32
+#define _fsopen(a,b,c) fopen(a,b)
+#define _ftelli64 ftell
+#define _fseeki64 fseek
+#endif /* ndef _WIN32 */
+
 
 static std::string describeFlags(unsigned flags);
 
@@ -11,7 +19,7 @@ int main(int argc, char* argv[])
     const char* output_filename = (argc > 2 ? argv[2] : "");
     bool exit_when_done = (argc > 3 && atoi(argv[3]) != 0);
     bool caen_ascii_format = (argc > 4 && atoi(argv[4]) != 0);
-    uint64_t trigger_time, frame_time;
+    uint64_t trigger_time, frame_time = 0;
     int16_t energy;
     uint32_t extras;
     const size_t EVENT_SIZE = 14;
