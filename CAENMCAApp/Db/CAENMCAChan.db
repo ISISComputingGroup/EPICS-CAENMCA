@@ -158,6 +158,7 @@ record(bi, "$(P)$(Q)C$(CHAN):POLARITY")
 
 record(waveform, "$(P)$(Q)C$(CHAN):LISTFILE:SP")
 {
+	field(DESC, "List File Name")
     field(DTYP, "asynOctetWrite")
 	field(INP, "@asyn($(PORT),$(CHAN),0)LISTFILE")
 	field(NELM, 512)
@@ -166,10 +167,21 @@ record(waveform, "$(P)$(Q)C$(CHAN):LISTFILE:SP")
 
 record(waveform, "$(P)$(Q)C$(CHAN):LISTFILE")
 {
+	field(DESC, "List File Name")
     field(DTYP, "asynOctetRead")
 	field(INP, "@asyn($(PORT),$(CHAN),0)LISTFILE")
 	field(NELM, 512)
 	field(FTVL, "CHAR")
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):LISTFILE:SIZE")
+{
+    field(DTYP, "asynFloat64")
+	field(EGU, "MB")
+	field(PREC, "3")
+	field(DESC, "List File Size")
+	field(INP, "@asyn($(PORT),$(CHAN),0)LISTFILESIZE")
 	field(SCAN, "I/O Intr")
 }
 

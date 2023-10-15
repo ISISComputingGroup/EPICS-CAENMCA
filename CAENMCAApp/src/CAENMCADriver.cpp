@@ -296,6 +296,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     createParam(P_chanMemFullString, asynParamInt32, &P_chanMemFull);
     createParam(P_chanMemEmptyString, asynParamInt32, &P_chanMemEmpty);
 	createParam(P_listFileString, asynParamOctet, &P_listFile);
+	createParam(P_listFileSizeString, asynParamFloat64, &P_listFileSize);
 	createParam(P_listEnabledString, asynParamInt32, &P_listEnabled);	
 	createParam(P_listSaveModeString, asynParamInt32, &P_listSaveMode);	
 	createParam(P_listMaxNEventsString, asynParamInt32, &P_listMaxNEvents);	
@@ -314,7 +315,6 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     createParam(P_eventsSpecNBinsString, asynParamInt32, &P_eventsSpecNBins);
     createParam(P_eventsSpecBinWidthString, asynParamFloat64, &P_eventsSpecBinWidth);
     
-
 	setStringParam(P_deviceName, deviceName);
 	m_device_h = CAENMCA::OpenDevice(deviceName, NULL);
 	CAENMCA::GetData(m_device_h, CAEN_MCA_DATA_BOARD_INFO, DATAMASK_BRDINFO_FAMCODE, &m_famcode);
@@ -1117,11 +1117,12 @@ static std::string describeFlags(unsigned flags)
 
 void CAENMCADriver::processListFile(int channel_id)
 {
-    std::string filename;
+    std::string filename, deviceName, ethPrefix = "eth://";
     int enabled, save_mode;
 	getStringParam(channel_id, P_listFile, filename);
 	getIntegerParam(channel_id, P_listEnabled, &enabled);
 	getIntegerParam(channel_id, P_listSaveMode, &save_mode);
+	getStringParam(P_deviceName, deviceName);
     uint64_t trigger_time;
     int16_t energy;
     uint32_t extras;
@@ -1148,7 +1149,10 @@ void CAENMCADriver::processListFile(int channel_id)
 	{
 		current_pos = _ftelli64(f);
 	}
-    std::string prefix = "\\\\130.246.55.0\\storage\\";
+    std::string prefix = "\\\\127.0.0.1\\storage\\";
+    if (!deviceName.compare(0, ethPrefix.size(), ethPrefix)) {
+        prefix = std::string("\\\\") + deviceName.substr(ethPrefix.size()) + "\\storage\\";
+    }
     int nevents_real = 0, nbins = 0;
     double binw = 1.0;
     getIntegerParam(channel_id, P_eventsSpecNBins, &nbins);
@@ -1179,6 +1183,7 @@ void CAENMCADriver::processListFile(int channel_id)
         std::fill(m_event_spec_y[channel_id].begin(), m_event_spec_y[channel_id].end(), 0.0);
         std::fill(m_energy_spec_test[channel_id].begin(), m_energy_spec_test[channel_id].end(), 0);
     }
+    setDoubleParam(channel_id, 	P_listFileSize, (double)current_pos / (1024.0 * 1024.0)); // convert to MBytes
     if (_fseeki64(f, 0, SEEK_END) != 0)
     {
         std::cerr << "fseek forward error" << std::endl;

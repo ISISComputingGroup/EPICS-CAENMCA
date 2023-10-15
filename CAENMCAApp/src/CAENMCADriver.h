@@ -117,6 +117,7 @@ private:
 	int P_listEnabled; // int
     int P_listSaveMode; // int
     int P_listMaxNEvents; // int
+    int P_listFileSize; // float
     int P_acqRunning; // int
     int P_acqRunningCh; // int
     int P_hvOn; // int
@@ -169,6 +170,7 @@ private:
 #define P_chanMemFullString "CHANMEMFULL"
 #define P_chanMemEmptyString "CHANMEMEMPTY"
 #define P_listFileString "LISTFILE"
+#define P_listFileSizeString "LISTFILESIZE"
 #define P_listEnabledString "LISTENABLED"
 #define P_listSaveModeString "LISTSAVEMODE"
 #define P_listMaxNEventsString  "LISTMAXNEVENTS"
