@@ -827,6 +827,7 @@ void CAENMCADriver::energySpectrumSetProperty(CAEN_MCA_HANDLE channel, int32_t s
 
 void CAENMCADriver::pollerTask()
 {
+	epicsThreadSleep(0.2); // to allow class constructror to complete
 	while(true)
 	{
 	    lock();
@@ -838,14 +839,14 @@ void CAENMCADriver::pollerTask()
 	    for(int i=0;i<2; ++i)
 		{
 	        getEnergySpectrum(i, 0, m_energy_spec[i]);
-		    doCallbacksInt32Array(&(m_energy_spec[i][0]), m_energy_spec[i].size(), P_energySpec, i);
+		    doCallbacksInt32Array(m_energy_spec[i].data(), m_energy_spec[i].size(), P_energySpec, i);
             getHVInfo(i);
             getChannelInfo(i);
 		    getLists(i);
             processListFile(i);
 		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
 		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
-		    doCallbacksInt32Array(&(m_energy_spec_test[i][0]), m_energy_spec_test[i].size(), P_energySpecTest, i);
+		    doCallbacksInt32Array(m_energy_spec_test[i].data(), m_energy_spec_test[i].size(), P_energySpecTest, i);
 		    callParamCallbacks(i);
 		}
         setIntegerParam(P_acqRunning, (isAcqRunning() ? 1 : 0));
