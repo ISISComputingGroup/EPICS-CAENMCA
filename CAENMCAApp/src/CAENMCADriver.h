@@ -22,7 +22,7 @@ public:
 	virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t maxChars, size_t *nActual);
 
 	virtual void report(FILE* fp, int details);
-	
+
 private:
 
     CAEN_MCA_HANDLE m_device_h;
@@ -36,7 +36,10 @@ private:
     std::vector<FILE*> m_event_file_fd;
     std::vector<int64_t> m_event_file_last_pos;
     std::vector<uint64_t> m_frame_time; 
+    std::vector<uint64_t> m_max_event_time; 
 	CAEN_MCA_BoardFamilyCode_t m_famcode;
+    uint32_t m_nbitsEnergy;
+    uint32_t m_tsample; // picoseconds
 
 	double getParameterValue(CAEN_MCA_HANDLE handle, const char *name);
 	void setParameterValue(CAEN_MCA_HANDLE handle, const char *name, double value);
@@ -73,6 +76,7 @@ private:
     void setEnergySpectrumAutosave(int32_t channel_id, int32_t spectrum_id, double period);
     void setListModeEnable(int32_t channel_id,  bool enable);
     void processListFile(int channel_id);
+    void incrIntParam(int channel_id, int param, int incr);
 
 #define FIRST_CAEN_PARAM P_deviceName
 
@@ -97,8 +101,13 @@ private:
  	int P_eventsSpecX; // double array
  	int P_eventsSpecNEvents; // int
  	int P_eventsSpecNTriggers; // int
+ 	int P_eventsSpecTriggerRate; // double
     int P_eventsSpecNBins; // int
     int P_eventsSpecBinWidth; // double
+ 	int P_eventsSpecNTimeTagRollover; // int
+ 	int P_eventsSpecNTimeTagReset; // int
+ 	int P_eventsSpecNEventEnergySat; // int
+    int P_eventsSpecMaxEventTime; // double
 	int P_vmon; // double
 	int P_vset; // double
 	int P_imon; // double
@@ -186,7 +195,12 @@ private:
 #define P_eventsSpecXString   "EVENTSPECX"
 #define P_eventsSpecNEventsString  "EVENTSPECNEV"
 #define P_eventsSpecNTriggersString    "EVENTSPECNTRIG"
+#define P_eventsSpecTriggerRateString  "EVENTSPECTRIGRATE"
 #define P_eventsSpecNBinsString   "EVENTSPECNBINS"
 #define P_eventsSpecBinWidthString  "EVENTSPECBINW"
+#define P_eventsSpecNTimeTagRolloverString "EVENTSPECNTTROLLOVER"
+#define P_eventsSpecNTimeTagResetString "EVENTSPECNTTRESET"
+#define P_eventsSpecNEventEnergySatString "EVENTSPECNENGSAT"
+#define P_eventsSpecMaxEventTimeString "EVENTSPECMAXEVENTTIME"
 
 #endif /* CAENMCADRIVER_H */

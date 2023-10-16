@@ -267,7 +267,8 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 		1, /* Autoconnect */
 		0, /* Default priority */
 		0),	/* Default stack size*/
-	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_event_file_fd(2, NULL),m_event_file_last_pos(2, 0),m_frame_time(2, 0)
+	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_event_file_fd(2, NULL),
+    m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0)
 {
 	const char *functionName = "CAENMCADriver";
 
@@ -319,8 +320,13 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
  	createParam(P_eventsSpecXString, asynParamFloat64Array, &P_eventsSpecX);
  	createParam(P_eventsSpecNEventsString, asynParamInt32, &P_eventsSpecNEvents);
  	createParam(P_eventsSpecNTriggersString, asynParamInt32, &P_eventsSpecNTriggers);
+ 	createParam(P_eventsSpecTriggerRateString, asynParamFloat64, &P_eventsSpecTriggerRate);
     createParam(P_eventsSpecNBinsString, asynParamInt32, &P_eventsSpecNBins);
     createParam(P_eventsSpecBinWidthString, asynParamFloat64, &P_eventsSpecBinWidth);
+    createParam(P_eventsSpecNTimeTagRolloverString, asynParamInt32, &P_eventsSpecNTimeTagRollover);
+    createParam(P_eventsSpecNTimeTagResetString, asynParamInt32, &P_eventsSpecNTimeTagReset);
+    createParam(P_eventsSpecNEventEnergySatString, asynParamInt32, &P_eventsSpecNEventEnergySat);
+    createParam(P_eventsSpecMaxEventTimeString, asynParamFloat64, &P_eventsSpecMaxEventTime);
     
 	setStringParam(P_deviceName, deviceName);
 	m_device_h = CAENMCA::OpenDevice(deviceName, NULL);
@@ -624,7 +630,7 @@ void CAENMCADriver::getChannelInfo(int32_t channel_id)
 void CAENMCADriver::getBoardInfo()
 {
 
-	uint32_t channels, hvchannels, serialNum, nbits, tsample, pcbrev, nbitsEnergy;
+	uint32_t channels, hvchannels, serialNum, pcbrev, nbits;
 	char modelName[MODEL_NAME_MAXLEN] = { '\0' };
 
 	CAENMCA::GetData(
@@ -644,16 +650,16 @@ void CAENMCADriver::getBoardInfo()
 		&hvchannels,
 		&pcbrev,
 		&nbits,
-		&tsample,
-		&nbitsEnergy
+		&m_tsample,
+		&m_nbitsEnergy
 	);
  	
 	fprintf(stdout, "Device name: %s\n", modelName);
 	fprintf(stdout, "PCB revision: %d\n", pcbrev);
 	fprintf(stdout, "Number of input channels: %d\n", channels);
 	fprintf(stdout, "Number of ADC bits: %d\n", nbits);
-	fprintf(stdout, "Number of Energy bits: %d\n", nbitsEnergy);
-	fprintf(stdout, "Sample period (in picoseconds): %d\n", tsample);
+	fprintf(stdout, "Number of Energy bits: %d\n", m_nbitsEnergy);
+	fprintf(stdout, "Sample period (in picoseconds): %d\n", m_tsample);
 	fprintf(stdout, "Number of HV channels: %d\n", channels);
 	fprintf(stdout, "Serial number: %d\n", serialNum);
 }
@@ -1130,7 +1136,7 @@ void CAENMCADriver::processListFile(int channel_id)
 	getIntegerParam(channel_id, P_listEnabled, &enabled);
 	getIntegerParam(channel_id, P_listSaveMode, &save_mode);
 	getStringParam(P_deviceName, deviceName);
-    uint64_t trigger_time;
+    uint64_t trigger_time = 0, frame_length = 0, max_event_time = 0;
     int16_t energy;
     uint32_t extras;
     const size_t EVENT_SIZE = 14;
@@ -1161,6 +1167,7 @@ void CAENMCADriver::processListFile(int channel_id)
         prefix = std::string("\\\\") + deviceName.substr(ethPrefix.size()) + "\\storage\\";
     }
     int nevents_real = 0, nbins = 0;
+    int ntimerollover = 0, ntimereset = 0, neventenergysat = 0;
     double binw = 1.0;
     getIntegerParam(channel_id, P_eventsSpecNBins, &nbins);
     getDoubleParam(channel_id, P_eventsSpecBinWidth, &binw);
@@ -1184,13 +1191,16 @@ void CAENMCADriver::processListFile(int channel_id)
         }
         m_old_list_filename[channel_id] = filename;
         m_event_file_last_pos[channel_id] = 0;
+        m_max_event_time[channel_id] = 0;
         current_pos = 0;
         setIntegerParam(channel_id, P_eventsSpecNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNTriggers, 0);
+        setIntegerParam(channel_id, P_eventsSpecNTimeTagRollover, 0);
+        setIntegerParam(channel_id, P_eventsSpecNTimeTagReset, 0);
+        setIntegerParam(channel_id, P_eventsSpecNEventEnergySat, 0);
         std::fill(m_event_spec_y[channel_id].begin(), m_event_spec_y[channel_id].end(), 0.0);
         std::fill(m_energy_spec_test[channel_id].begin(), m_energy_spec_test[channel_id].end(), 0);
     }
-    setDoubleParam(channel_id, 	P_listFileSize, (double)current_pos / (1024.0 * 1024.0)); // convert to MBytes
     if (_fseeki64(f, 0, SEEK_END) != 0)
     {
         std::cerr << "fseek forward error" << std::endl;
@@ -1206,6 +1216,7 @@ void CAENMCADriver::processListFile(int channel_id)
         std::cerr << "fseek back error" << std::endl;
         return;
     }   
+    setDoubleParam(channel_id, 	P_listFileSize, (double)current_pos / (1024.0 * 1024.0)); // convert to MBytes
     new_bytes = current_pos - m_event_file_last_pos[channel_id];
 	if (new_bytes < 0)
 	{
@@ -1242,12 +1253,28 @@ void CAENMCADriver::processListFile(int channel_id)
         if (extras == 0x8 && energy == 0)
         {
             ++frame;
+            if (trigger_time > m_frame_time[channel_id]) {
+                frame_length = trigger_time - m_frame_time[channel_id];
+            }
             m_frame_time[channel_id] = trigger_time;
+        }
+        if (extras & 0x2) {
+            ++ntimerollover;
+        }
+        if (extras & 0x4) {
+            ++ntimereset;
+        }
+        if (extras & 0x80) {
+            ++neventenergysat;
         }
         if ( energy > 0 && (!(extras & 0x8)) )
         {
             ++nevents_real;
-            int n = (trigger_time - m_frame_time[channel_id]) / binw;
+            uint64_t tdiff = trigger_time - m_frame_time[channel_id];
+            if (tdiff > max_event_time) {
+                max_event_time = tdiff;
+            }
+            int n = tdiff / binw;
             if (n >= 0 && n < nbins)
             {
                 m_event_spec_y[channel_id][n] += 1.0;
@@ -1259,14 +1286,30 @@ void CAENMCADriver::processListFile(int channel_id)
         }
         //std::cout << frame << ": " << trigger_time << "  " << trigger_time - m_frame_time[channel_id] << "  " << energy << "  (" << describeFlags(extras) << ")" << std::endl;
     }
+    if (max_event_time > m_max_event_time[channel_id]) {
+        m_max_event_time[channel_id] = max_event_time;
+    }
 	m_event_file_last_pos[channel_id] = _ftelli64(f);
-    int ival;
-    getIntegerParam(channel_id, P_eventsSpecNEvents, &ival);
-    setIntegerParam(channel_id, P_eventsSpecNEvents, ival + nevents_real);
-    getIntegerParam(channel_id, P_eventsSpecNTriggers, &ival);
-    setIntegerParam(channel_id, P_eventsSpecNTriggers, ival + frame);
-    
+    incrIntParam(channel_id, P_eventsSpecNEvents, nevents_real);
+    incrIntParam(channel_id, P_eventsSpecNTriggers, frame);
+    incrIntParam(channel_id, P_eventsSpecNTimeTagRollover, ntimerollover);
+    incrIntParam(channel_id, P_eventsSpecNTimeTagReset, ntimereset);
+    incrIntParam(channel_id, P_eventsSpecNEventEnergySat, neventenergysat);
+    if (frame_length > 0) {
+        setDoubleParam(channel_id, P_eventsSpecTriggerRate, 1.0e12 / (double)frame_length); // frame length units is pico seconds
+    } else {
+        setDoubleParam(channel_id, P_eventsSpecTriggerRate, 0.0);
+    }
+    setDoubleParam(channel_id, P_eventsSpecMaxEventTime, m_max_event_time[channel_id]);
     return;
+}
+
+void CAENMCADriver::incrIntParam(int channel_id, int param, int incr)
+{
+    int old_val = 0;
+    if (getIntegerParam(channel_id, param, &old_val) == asynSuccess) {
+        setIntegerParam(channel_id, param, old_val + incr);
+    }
 }
 
 extern "C" {

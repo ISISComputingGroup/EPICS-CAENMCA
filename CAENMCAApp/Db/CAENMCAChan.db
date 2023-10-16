@@ -311,6 +311,14 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:BINW")
 	field(SCAN, "I/O Intr")
 }
 
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:TRIG:RATE")
+{
+    field(DTYP, "asynFloat64")
+	field(EGU, "Hz")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECTRIGRATE")
+	field(SCAN, "I/O Intr")
+}
+
 record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC:BINW:SP")
 {
     field(DTYP, "asynFloat64")
@@ -324,6 +332,36 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NEV")
 {
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNEV")
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTTROLL")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTTROLLOVER")
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTTRESET")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTTRESET")
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGSAT")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNENGSAT")
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:MAXTIME")
+{
+    field(DTYP, "asynFloat64")
+	field(EGU, "")
+	field(PREC, "3")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECMAXEVENTTIME")
 	field(SCAN, "I/O Intr")
 }
 
