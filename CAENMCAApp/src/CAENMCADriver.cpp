@@ -148,62 +148,81 @@ class CAENMCAException : public std::runtime_error
 
 struct CAENMCA
 {
+    static bool simulate;
+
     static CAEN_MCA_HANDLE OpenDevice(const std::string& path, int32_t* index)
     {
-        int32_t retcode;
-        CAEN_MCA_HANDLE h = CAEN_MCA_OpenDevice(path.c_str(), &retcode, index);
-        ERROR_CHECK("CAENMCA::OpenDevice()", retcode);
+        CAEN_MCA_HANDLE h = NULL;
+        if (!simulate) {
+            int32_t retcode;
+            h = CAEN_MCA_OpenDevice(path.c_str(), &retcode, index);
+            ERROR_CHECK("CAENMCA::OpenDevice()", retcode);
+        }
         return h;
     }
 
     static void closeDevice(CAEN_MCA_HANDLE handle)
     {
-        CAEN_MCA_CloseDevice(handle);
+        if (!simulate) {
+            CAEN_MCA_CloseDevice(handle);
+        }
     }
 
     static void GetData(CAEN_MCA_HANDLE handle, CAEN_MCA_DataType_t dataType, uint64_t dataMask, ...)
     {
-        va_list args;
-        va_start(args, dataMask);
-        int32_t retcode = CAEN_MCA_GetDataV(handle, dataType, dataMask, args);
-        va_end(args);
-        ERROR_CHECK("CAENMCA::GetData()", retcode);        
+        if (!simulate) {
+            va_list args;
+            va_start(args, dataMask);
+            int32_t retcode = CAEN_MCA_GetDataV(handle, dataType, dataMask, args);
+            va_end(args);
+            ERROR_CHECK("CAENMCA::GetData()", retcode);
+        }
     }
 
     static void SetData(CAEN_MCA_HANDLE handle, CAEN_MCA_DataType_t dataType, uint64_t dataMask, ...)
     {
-        va_list args;
-        va_start(args, dataMask);
-        int32_t retcode = CAEN_MCA_SetDataV(handle, dataType, dataMask, args);
-        va_end(args);
-        ERROR_CHECK("CAENMCA::SetData()", retcode);        
+        if (!simulate) {
+            va_list args;
+            va_start(args, dataMask);
+            int32_t retcode = CAEN_MCA_SetDataV(handle, dataType, dataMask, args);
+            va_end(args);
+            ERROR_CHECK("CAENMCA::SetData()", retcode);
+        }
     }
 
     static void SendCommand(CAEN_MCA_HANDLE handle, CAEN_MCA_CommandType_t cmdType, uint64_t cmdMaskIn, uint64_t cmdMaskOut, ...)
     {
-        va_list args;
-        va_start(args, cmdMaskOut);
-        int32_t retcode = CAEN_MCA_SendCommandV(handle, cmdType, cmdMaskIn, cmdMaskOut, args);
-        va_end(args);
-        ERROR_CHECK("CAENMCA::SendCommand()", retcode);        
+        if (!simulate) {
+            va_list args;
+            va_start(args, cmdMaskOut);
+            int32_t retcode = CAEN_MCA_SendCommandV(handle, cmdType, cmdMaskIn, cmdMaskOut, args);
+            va_end(args);
+            ERROR_CHECK("CAENMCA::SendCommand()", retcode);
+        }            
     }
 
     static CAEN_MCA_HANDLE GetChildHandle(CAEN_MCA_HANDLE handle, CAEN_MCA_HandleType_t handleType, int32_t index)
     {
-        CAEN_MCA_HANDLE h = CAEN_MCA_GetChildHandle(handle, handleType, index);
-        if (h == NULL)
-        {
-            throw CAENMCAException("GetChildHandle(): failed");
+        CAEN_MCA_HANDLE h = NULL;
+        if (!simulate) {
+            h = CAEN_MCA_GetChildHandle(handle, handleType, index);
+            if (h == NULL)
+            {
+                throw CAENMCAException("GetChildHandle(): failed");
+            }
         }
         return h;
     }
     
     static CAEN_MCA_HANDLE GetChildHandleByName(CAEN_MCA_HANDLE handle, CAEN_MCA_HandleType_t handleType, const std::string& name)
     {
-        CAEN_MCA_HANDLE h = CAEN_MCA_GetChildHandleByName(handle, handleType, name.c_str());
-        if (h == NULL)
-        {
-            throw CAENMCAException("GetChildHandleByName(): failed for name \"" + name + "\"");
+        CAEN_MCA_HANDLE h = NULL;
+        if (!simulate) {
+            h = CAEN_MCA_GetChildHandleByName(handle, handleType, name.c_str());
+            if (h == NULL)
+            {
+                throw CAENMCAException("GetChildHandleByName(): failed for name \"" + name + "\"");
+            }
         }
         return h;
     }
@@ -211,6 +230,11 @@ struct CAENMCA
     static void getHandlesFromCollection(CAEN_MCA_HANDLE parent, CAEN_MCA_HandleType_t handleType, std::vector<CAEN_MCA_HANDLE>& handles)
     {
         handles.resize(0);
+        if (simulate) {
+            handles.push_back(NULL);
+            handles.push_back(NULL);
+            return;
+        }
         CAEN_MCA_HANDLE collection = CAENMCA::GetChildHandle(parent, CAEN_MCA_HANDLE_COLLECTION, handleType);
         uint32_t collection_length = 0;
         CAEN_MCA_HANDLE collection_handles[COLLECTION_MAXLEN] = { NULL };
@@ -237,6 +261,9 @@ struct CAENMCA
 	
     static void getHandleDetails(CAEN_MCA_HANDLE handle, int32_t& type, int32_t& index, std::string& name)
 	{
+        if (simulate) {
+            return;
+        }
 		char name_c[HANDLE_NAME_MAXLEN];
 		CAENMCA::GetData(
 			handle,
@@ -252,6 +279,8 @@ struct CAENMCA
 	}
 	
 };
+
+bool CAENMCA::simulate = false;
 
 /// Constructor for the webgetDriver class.
 /// Calls constructor for the asynPortDriver base class and sets up driver parameters.
@@ -278,7 +307,10 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 	createParam(P_numEnergySpecString, asynParamInt32, &P_numEnergySpec);
 	createParam(P_energySpecClearString, asynParamInt32, &P_energySpecClear);
 	createParam(P_energySpecString, asynParamInt32Array, &P_energySpec);
-	createParam(P_energySpecTestString, asynParamInt32Array, &P_energySpecTest);
+	createParam(P_energySpecEventString, asynParamInt32Array, &P_energySpecEvent);
+	createParam(P_energySpecEventTMinString, asynParamFloat64, &P_energySpecEventTMin);
+	createParam(P_energySpecEventTMaxString, asynParamFloat64, &P_energySpecEventTMax);
+	createParam(P_energySpecEventNEventsString, asynParamInt32, &P_energySpecEventNEvents);
 	createParam(P_energySpecCountsString, asynParamInt32, &P_energySpecCounts);
 	createParam(P_energySpecNBinsString, asynParamInt32, &P_energySpecNBins);
     createParam(P_energySpecFilenameString, asynParamOctet, &P_energySpecFilename);
@@ -346,7 +378,17 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     std::cerr << "hv1 on " << isHVOn(m_hv_chan_h[1]) << std::endl;
         
 	std::cerr << isAcqRunning() << " " << isAcqRunning(m_chan_h[0]) << " " << isAcqRunning(m_chan_h[1]) << std::endl;
- 
+    
+    uint32_t val0 = 0, val1 = 0;
+    readRegister(0x10B8, val0);
+    readRegister(0x11B8, val1);
+    std::cerr << "OLD: 0x1nB8 register for setting timing was: " << val0 << " " << val1 << std::endl;
+    writeRegisterMask(0x10B8, 2, 2);
+    writeRegisterMask(0x11B8, 2, 2);
+    readRegister(0x10B8, val0);
+    readRegister(0x11B8, val1);
+    std::cerr << "NEW: 0x1nB8 register for setting timing was: " << val0 << " " << val1 << std::endl;
+
 	if (epicsThreadCreate("CAENMCADriverPoller",
 		epicsThreadPriorityMedium,
 		epicsThreadGetStackSize(epicsThreadStackMedium),
@@ -606,6 +648,29 @@ void CAENMCADriver::readRegister(uint32_t address, uint32_t& value)
 		&value);
 }
 
+void CAENMCADriver::writeRegister(uint32_t address, uint32_t value)
+{
+	CAENMCA::SendCommand(
+		m_device_h,
+		CAEN_MCA_CMD_REGISTER_WRITE,
+		DATAMASK_CMD_REG_ADDR | DATAMASK_CMD_REG_DATA,
+		DATAMASK_CMD_NONE,
+		address,
+		value);
+}
+
+void CAENMCADriver::writeRegisterMask(uint32_t address, uint32_t value, uint32_t mask)
+{
+	CAENMCA::SendCommand(
+		m_device_h,
+		CAEN_MCA_CMD_REGISTER_WRITE,
+		DATAMASK_CMD_REG_ADDR | DATAMASK_CMD_REG_DATA | DATAMASK_CMD_REG_MASK,
+		DATAMASK_CMD_NONE,
+		address,
+		value,
+		mask);
+}
+
 void CAENMCADriver::getChannelInfo(int32_t channel_id)
 {
 	CAEN_MCA_HANDLE channel = m_chan_h[channel_id];
@@ -846,7 +911,7 @@ void CAENMCADriver::pollerTask()
             processListFile(i);
 		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
 		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
-		    doCallbacksInt32Array(m_energy_spec_test[i].data(), m_energy_spec_test[i].size(), P_energySpecTest, i);
+		    doCallbacksInt32Array(m_energy_spec_event[i].data(), m_energy_spec_event[i].size(), P_energySpecEvent, i);
 		    callParamCallbacks(i);
 		}
         setIntegerParam(P_acqRunning, (isAcqRunning() ? 1 : 0));
@@ -1142,6 +1207,10 @@ void CAENMCADriver::processListFile(int channel_id)
     uint32_t extras;
     const size_t EVENT_SIZE = 14;
     struct stat stat_struct;
+    std::string prefix = "\\\\127.0.0.1\\storage\\";
+    if (!deviceName.compare(0, ethPrefix.size(), ethPrefix)) {
+        prefix = std::string("\\\\") + deviceName.substr(ethPrefix.size()) + "\\storage\\";
+    }
     FILE*& f = m_event_file_fd[channel_id];
     if ( (sizeof(trigger_time) + sizeof(energy) + sizeof(extras)) != EVENT_SIZE )
     {
@@ -1158,16 +1227,12 @@ void CAENMCADriver::processListFile(int channel_id)
         return;
     }
     int64_t frame = 0, last_pos, current_pos = 0, new_bytes, nevents;
-    m_energy_spec_test[channel_id].resize(32768);
+    m_energy_spec_event[channel_id].resize(32768);
 	if (f != NULL)
 	{
 		current_pos = _ftelli64(f);
 	}
-    std::string prefix = "\\\\127.0.0.1\\storage\\";
-    if (!deviceName.compare(0, ethPrefix.size(), ethPrefix)) {
-        prefix = std::string("\\\\") + deviceName.substr(ethPrefix.size()) + "\\storage\\";
-    }
-    int nevents_real = 0, nbins = 0;
+    int nevents_real = 0, nbins = 0, nevents_real_es = 0;
     int ntimerollover = 0, ntimereset = 0, neventenergysat = 0;
     double binw = 1.0;
     getIntegerParam(channel_id, P_eventsSpecNBins, &nbins);
@@ -1194,13 +1259,14 @@ void CAENMCADriver::processListFile(int channel_id)
         m_event_file_last_pos[channel_id] = 0;
         m_max_event_time[channel_id] = 0;
         current_pos = 0;
+        setIntegerParam(channel_id, P_energySpecEventNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNTriggers, 0);
         setIntegerParam(channel_id, P_eventsSpecNTimeTagRollover, 0);
         setIntegerParam(channel_id, P_eventsSpecNTimeTagReset, 0);
         setIntegerParam(channel_id, P_eventsSpecNEventEnergySat, 0);
         std::fill(m_event_spec_y[channel_id].begin(), m_event_spec_y[channel_id].end(), 0.0);
-        std::fill(m_energy_spec_test[channel_id].begin(), m_energy_spec_test[channel_id].end(), 0);
+        std::fill(m_energy_spec_event[channel_id].begin(), m_energy_spec_event[channel_id].end(), 0);
     }
     if (_fseeki64(f, 0, SEEK_END) != 0)
     {
@@ -1234,6 +1300,9 @@ void CAENMCADriver::processListFile(int channel_id)
     {
         m_event_spec_x[channel_id][i] = i * binw;
     }
+    double tmin = 0.0, tmax = 0.0;
+    getDoubleParam(channel_id, P_energySpecEventTMin, &tmin);
+    getDoubleParam(channel_id, P_energySpecEventTMax, &tmax);
     for(int i=0; i<nevents; ++i)
     {
         if (fread(&trigger_time, sizeof(trigger_time), 1, f) != 1)
@@ -1280,9 +1349,10 @@ void CAENMCADriver::processListFile(int channel_id)
             {
                 m_event_spec_y[channel_id][n] += 1.0;
             }
-            if (energy != 32767)
+            if ( energy != 32767 && ((tmin >= tmax) || (tdiff >= tmin && tdiff <= tmax)) )
             {
-                ++(m_energy_spec_test[channel_id][energy]);
+                ++nevents_real_es;
+                ++(m_energy_spec_event[channel_id][energy]);
             }
         }
         //std::cout << frame << ": " << trigger_time << "  " << trigger_time - m_frame_time[channel_id] << "  " << energy << "  (" << describeFlags(extras) << ")" << std::endl;
@@ -1292,6 +1362,7 @@ void CAENMCADriver::processListFile(int channel_id)
     }
 	m_event_file_last_pos[channel_id] = _ftelli64(f);
     incrIntParam(channel_id, P_eventsSpecNEvents, nevents_real);
+    incrIntParam(channel_id, P_energySpecEventNEvents, nevents_real_es);
     incrIntParam(channel_id, P_eventsSpecNTriggers, frame);
     incrIntParam(channel_id, P_eventsSpecNTimeTagRollover, ntimerollover);
     incrIntParam(channel_id, P_eventsSpecNTimeTagReset, ntimereset);
