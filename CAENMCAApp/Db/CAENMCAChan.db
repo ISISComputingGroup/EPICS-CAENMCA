@@ -22,6 +22,8 @@ record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMIN:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMIN")
 	field(PREC, 3)
 	field(EGU, "")
+	field(PINI, "YES")
+	info(autosaveFields, "VAL")
 }
 
 record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMIN")
@@ -39,6 +41,8 @@ record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMAX:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMAX")
 	field(PREC, 3)
 	field(EGU, "")
+	field(PINI, "YES")
+	info(autosaveFields, "VAL")
 }
 
 record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMAX")

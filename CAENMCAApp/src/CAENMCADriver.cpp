@@ -1248,6 +1248,7 @@ void CAENMCADriver::processListFile(int channel_id)
     if (f == NULL || filename != m_old_list_filename[channel_id] || current_pos == -1 || current_pos != m_event_file_last_pos[channel_id])
     {
         std::string p_filename = prefix + filename;
+        std::replace(p_filename.begin(), p_filename.end(), '/', '\\'); 
         if (f != NULL)
         {
             fclose(f);
