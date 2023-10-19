@@ -54,6 +54,10 @@ static const char *driverName = "CAENMCADriver"; ///< Name of driver for use in 
 /// EPICS driver report function for iocsh dbior command
 void CAENMCADriver::report(FILE* fp, int details)
 {
+    uint32_t val0 = 0, val1 = 0;
+    readRegister(0x10B8, val0);
+    readRegister(0x11B8, val1);
+    fprintf(fp, "0x1nB8 register for setting timing is: %u %u\n", val0, val1);
 	asynPortDriver::report(fp, details);
 }
 
@@ -157,6 +161,8 @@ struct CAENMCA
             int32_t retcode;
             h = CAEN_MCA_OpenDevice(path.c_str(), &retcode, index);
             ERROR_CHECK("CAENMCA::OpenDevice()", retcode);
+        } else {
+            std::cerr << "Opening simulated device for " << path << std::endl;
         }
         return h;
     }
@@ -1405,13 +1411,15 @@ extern "C" {
 
 	static const iocshArg initArg0 = { "portName", iocshArgString };			///< A name for the asyn driver instance we will create - used to refer to it from EPICS DB files
 	static const iocshArg initArg1 = { "deviceName", iocshArgString };			///< A name for device to connect to
+	static const iocshArg initArg2 = { "simulate", iocshArgInt };			    ///< 1 to simulate
 
-	static const iocshArg * const initArgs[] = { &initArg0, &initArg1 };
+	static const iocshArg * const initArgs[] = { &initArg0, &initArg1, &initArg2 };
 
 	static const iocshFuncDef initFuncDef = { "CAENMCAConfigure", sizeof(initArgs) / sizeof(iocshArg*), initArgs };
 
 	static void initCallFunc(const iocshArgBuf *args)
 	{
+        CAENMCA::simulate = (args[2].ival != 0 ? true : false);
 		CAENMCAConfigure(args[0].sval, args[1].sval);
 	}
 
