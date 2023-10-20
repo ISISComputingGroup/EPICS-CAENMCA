@@ -342,7 +342,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 					0, // maxMemory
 		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask | asynDrvUserMask, /* Interface mask */
 		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask,  /* Interrupt mask */
-		ASYN_CANBLOCK , /* asynFlags.  This driver can block but it is not multi-device */      /*| ASYN_MULTIDEVICE */
+		ASYN_CANBLOCK | ASYN_MULTIDEVICE, /* asynFlags.  This driver can block and is multi-device */
 		1, /* Autoconnect */
 		0, /* Default priority */
 		0),	/* Default stack size*/
@@ -744,6 +744,11 @@ void CAENMCADriver::controlAcquisition(int chan_mask, bool start)
         }
 		CAENMCA::SendCommand(m_device_h, cmdtype, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
 	}
+	if (start) {
+		setADAcquire(1);
+	} else {
+		setADAcquire(0);		
+	}
 }
 
 void CAENMCADriver::readRegister(uint32_t address, uint32_t& value)
@@ -1018,6 +1023,7 @@ void CAENMCADriver::pollerTask()
             getChannelInfo(i);
 		    getLists(i);
             processListFile(i);
+			updateAD(i, m_event_spec_x[i].size());
 		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
 		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
 		    doCallbacksInt32Array(m_energy_spec_event[i].data(), m_energy_spec_event[i].size(), P_energySpecEvent, i);
@@ -1119,26 +1125,30 @@ asynStatus CAENMCADriver::readInt32(asynUser *pasynUser, epicsInt32 *value)
 asynStatus CAENMCADriver::readFloat64Array(asynUser *pasynUser, epicsFloat64 *value, size_t nElements, size_t *nIn)
 {
 	int function = pasynUser->reason;
+	int addr = 0;
+	getAddress(pasynUser, &addr);
 	if (function < FIRST_CAEN_PARAM)
 	{
 		return ADDriver::readFloat64Array(pasynUser, value, nElements, nIn);
 	}
     asynStatus stat = asynSuccess;
 	callParamCallbacks();
-	doCallbacksFloat64Array(value, *nIn, function, 0);
+	doCallbacksFloat64Array(value, *nIn, function, addr);
     return stat;
 }
 
 asynStatus CAENMCADriver::readInt32Array(asynUser *pasynUser, epicsInt32 *value, size_t nElements, size_t *nIn)
 {
 	int function = pasynUser->reason;
+	int addr = 0;
+	getAddress(pasynUser, &addr);
 	if (function < FIRST_CAEN_PARAM)
 	{
 		return ADDriver::readInt32Array(pasynUser, value, nElements, nIn);
 	}
     asynStatus stat = asynSuccess;
 	callParamCallbacks();
-	doCallbacksInt32Array(value, *nIn, function, 0);
+	doCallbacksInt32Array(value, *nIn, function, addr);
     return stat;
 }
 
@@ -1416,6 +1426,7 @@ void CAENMCADriver::processListFile(int channel_id)
     getDoubleParam(channel_id, P_eventsSpecBinWidth, &binw);
     m_event_spec_x[channel_id].resize(nbins);
     m_event_spec_y[channel_id].resize(nbins);
+	m_event_spec_2d[channel_id].resize(nbins*32768);
     if (f == NULL || filename != m_old_list_filename[channel_id] || current_pos == -1 || current_pos != m_event_file_last_pos[channel_id])
     {
         std::string p_filename = prefix + filename;
@@ -1452,6 +1463,7 @@ void CAENMCADriver::processListFile(int channel_id)
         setIntegerParam(channel_id, P_nEventNotBinned, 0);
         std::fill(m_event_spec_y[channel_id].begin(), m_event_spec_y[channel_id].end(), 0.0);
         std::fill(m_energy_spec_event[channel_id].begin(), m_energy_spec_event[channel_id].end(), 0);
+        std::fill(m_event_spec_2d[channel_id].begin(), m_event_spec_2d[channel_id].end(), 0.0);
     }
     if (_fseeki64(f, 0, SEEK_END) != 0)
     {
@@ -1549,6 +1561,7 @@ void CAENMCADriver::processListFile(int channel_id)
                 if (n >= 0 && n < nbins)
                 {
                     m_event_spec_y[channel_id][n] += 1.0;
+					m_event_spec_2d[channel_id][n * 32768 + energy] += 1;
                 }
                 else
                 {
@@ -1598,9 +1611,9 @@ void CAENMCADriver::incrIntParam(int channel_id, int param, int incr)
     }
 }
 
-void CAENMCADriver::updateAD()
+void CAENMCADriver::updateAD(int addr, int nbins)
 {
-    static const char* functionName = "NucInstDigPoller4";
+    static const char* functionName = "updateAD";
 	int acquiring, enable;
 	int all_acquiring, all_enable;
     int status = asynSuccess;
@@ -1614,90 +1627,64 @@ void CAENMCADriver::updateAD()
     double elapsedTime;
     std::vector<int> old_acquiring(maxAddr, 0);
 	std::vector<epicsTimeStamp> last_update(maxAddr);
-#if 0
 	memset(&(last_update[0]), 0, maxAddr * sizeof(epicsTimeStamp));	
-	while(true)
-	{
 		all_acquiring = all_enable = 0;
-		for(int i=0; i<maxAddr; ++i)
-		{
-		    epicsGuard<CAENMCADriver> _lock(*this);
 			try 
 			{
 				acquiring = enable = 0;
-                if (i == 0) {
-                    getIntegerParam(P_readDCSpectra, &enable);
-                } else if (i == 1) {
-                    enable = 1; // traces always enabled
-                } else if (i == 2) {
-                    getIntegerParam(P_readTOFSpectra, &enable);
-                }
-				getIntegerParam(i, ADAcquire, &acquiring);
-				getDoubleParam(i, ADAcquirePeriod, &acquirePeriod);
+				getIntegerParam(addr, ADAcquire, &acquiring);
+				getDoubleParam(addr, ADAcquirePeriod, &acquirePeriod);
 				
 				all_acquiring |= acquiring;
 				all_enable |= enable;
 				if (acquiring == 0 || enable == 0)
 				{
-					old_acquiring[i] = acquiring;
-	//				epicsThreadSleep( acquirePeriod );
-					continue;
+					old_acquiring[addr] = acquiring;
+					return;
 				}
-				if (old_acquiring[i] == 0)
+				if (old_acquiring[addr] == 0)
 				{
-					setIntegerParam(i, ADNumImagesCounter, 0);
-					old_acquiring[i] = acquiring;
+					setIntegerParam(addr, ADNumImagesCounter, 0);
+					old_acquiring[addr] = acquiring;
 				}
-				setIntegerParam(i, ADStatus, ADStatusAcquire); 
+				setIntegerParam(addr, ADStatus, ADStatusAcquire); 
 				epicsTimeGetCurrent(&startTime);
-				getIntegerParam(i, ADImageMode, &imageMode);
+				getIntegerParam(addr, ADImageMode, &imageMode);
 
 				/* Get the exposure parameters */
-				getDoubleParam(i, ADAcquireTime, &acquireTime);  // not really used
+				getDoubleParam(addr, ADAcquireTime, &acquireTime);  // not really used
 
-				setShutter(i, ADShutterOpen);
-				callParamCallbacks(i, i);
+				setShutter(addr, ADShutterOpen);
+				callParamCallbacks(addr, addr);
 				
-				/* Update the image */
-                if (i == 0) {
-                    epicsGuard<epicsMutex> _lock(m_dcLock);
-				    status = computeImage(i, m_dcSpectra, m_nDCPts, m_nDCSpec);
-                }
-                else if (i == 1) {
-                    epicsGuard<epicsMutex> _lock(m_tracesLock);
-				    status = computeImage(i, m_traces, m_nVoltage, m_NTRACE);
-                }
-                else if (i == 2) {
-                    epicsGuard<epicsMutex> _lock(m_TOFSpectraLock);
-				    status = computeImage(i, m_TOFSpectra, m_nTOFPts, m_nTOFSpec);
-                }
+				status = computeImage(addr, m_event_spec_2d[addr], 32768, nbins);
 
 	//            if (status) continue;
 
 				// could sleep to make up to acquireTime
 			
 				/* Close the shutter */
-				setShutter(i, ADShutterClosed);
+				setShutter(addr, ADShutterClosed);
 			
-				setIntegerParam(i, ADStatus, ADStatusReadout);
+				setIntegerParam(addr, ADStatus, ADStatusReadout);
 				/* Call the callbacks to update any changes */
-				callParamCallbacks(i, i);
+				callParamCallbacks(addr, addr);
 
-				pImage = this->pArrays[i];
+				pImage = this->pArrays[addr];
 				if (pImage == NULL)
 				{
 					continue;
 				}
 
 				/* Get the current parameters */
-				getIntegerParam(i, NDArrayCounter, &imageCounter);
-				getIntegerParam(i, ADNumImages, &numImages);
-				getIntegerParam(i, ADNumImagesCounter, &numImagesCounter);
-				getIntegerParam(i, NDArrayCallbacks, &arrayCallbacks);
+				getIntegerParam(addr, NDArrayCounter, &imageCounter);
+				getIntegerParam(addr, ADNumImages, &numImages);
+				getIntegerParam(addr, ADNumImagesCounter, &numImagesCounter);
+				getIntegerParam(addr, NDArrayCallbacks, &arrayCallbacks);
 				++imageCounter;
 				++numImagesCounter;
-				setIntegerParam(i, NDArrayCounter, imageCounter);
-				setIntegerParam(i, ADNumImagesCounter, numImagesCounter);
+				setIntegerParam(addr, NDArrayCounter, imageCounter);
+				setIntegerParam(addr, ADNumImagesCounter, numImagesCounter);
 
 				/* Put the frame number and time stamp into the buffer */
 				pImage->uniqueId = imageCounter;
@@ -1714,14 +1701,14 @@ void CAENMCADriver::updateAD()
 				  epicsGuardRelease<CAENMCADriver> _unlock(_lock);
 				  asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
 						"%s:%s: calling imageData callback addr %d\n", driverName, functionName, i);
-				  doCallbacksGenericPointer(pImage, NDArrayData, i);
+				  doCallbacksGenericPointer(pImage, NDArrayData, addr);
 				}
 				epicsTimeGetCurrent(&endTime);
 				elapsedTime = epicsTimeDiffInSeconds(&endTime, &startTime);
-				updateTime = epicsTimeDiffInSeconds(&endTime, &(last_update[i]));
-				last_update[i] = endTime;
+				updateTime = epicsTimeDiffInSeconds(&endTime, &(last_update[addr]));
+				last_update[addr] = endTime;
 				/* Call the callbacks to update any changes */
-				callParamCallbacks(i, i);
+				callParamCallbacks(addr, addr);
 				/* sleep for the acquire period minus elapsed time. */
 				delay = acquirePeriod - elapsedTime;
 				asynPrint(this->pasynUserSelf, ASYN_TRACE_FLOW,
@@ -1729,14 +1716,14 @@ void CAENMCADriver::updateAD()
 						driverName, functionName, delay);
 				if (delay >= 0.0) {
 					/* We set the status to waiting to indicate we are in the period delay */
-					setIntegerParam(i, ADStatus, ADStatusWaiting);
-					callParamCallbacks(i, i);
+					setIntegerParam(addr, ADStatus, ADStatusWaiting);
+					callParamCallbacks(addr, addr);
 					{
 						epicsGuardRelease<CAENMCADriver> _unlock(_lock);
 						epicsThreadSleep(delay);
 					}
-					setIntegerParam(i, ADStatus, ADStatusIdle);
-					callParamCallbacks(i, i);  
+					setIntegerParam(addr, ADStatus, ADStatusIdle);
+					callParamCallbacks(addr, addr);  
 				}
 			}
 			catch(...)
@@ -1744,16 +1731,7 @@ void CAENMCADriver::updateAD()
 				std::cerr << "Exception in pollerThread4" << std::endl;
 			}
         }
-		if (all_enable == 0 || all_acquiring == 0)
-		{
-			epicsThreadSleep(1.0);
-		}
-		else
-		{
-			epicsThreadSleep(1.0);
-		}
 	}
-#endif
 }
 
 /** Computes the new image data */
@@ -2049,10 +2027,6 @@ int CAENMCADriver::computeArray(int addr, const std::vector<double>& data, int s
 	}
     return(status);
 }
-
-
-
-
 
 extern "C" {
 

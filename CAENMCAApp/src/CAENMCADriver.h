@@ -29,7 +29,7 @@ public:
 	virtual void report(FILE* fp, int details);
 
 private:
-    void updateAD();
+    void updateAD(int addr, int nbins);
     void clearEnergySpectrum(int channel_id);
     NDArray* m_pRaw;
     void setADAcquire(int addr, int acquire);
@@ -41,6 +41,7 @@ private:
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
 	std::vector<epicsInt32> m_energy_spec[2];
 	std::vector<epicsInt32> m_energy_spec_event[2];
+	std::vector<epicsFloat64> m_event_spec2d[2];
 	std::vector<epicsFloat64> m_event_spec_x[2];
 	std::vector<epicsFloat64> m_event_spec_y[2];
     std::vector<std::string> m_old_list_filename;
