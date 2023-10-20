@@ -15,6 +15,9 @@ PROD_IOC = $(APPNAME)
 # CAENMCATest.dbd will be created and installed
 DBD += $(APPNAME).dbd
 
+PROD_NAME = $(APPNAME)
+include $(ADCORE)/ADApp/commonDriverMakefile
+
 # CAENMCATest.dbd will be made up from these files:
 $(APPNAME)_DBD += base.dbd
 $(APPNAME)_DBD += asyn.dbd
