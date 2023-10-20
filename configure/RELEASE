@@ -44,11 +44,16 @@ EPICS_BASE = D:/Instrument/Apps/EPICS/base/master
 CAENMCA=$(SUPPORT)/CAENMCA/master
 ASYN=$(SUPPORT)/asyn/master
 ONCRPC=$(SUPPORT)/oncrpc/master
+AREA_DETECTOR=$(SUPPORT)/areaDetector/master
 
 # optional extra local definitions here
 -include $(TOP)/configure/RELEASE.private
 
 -include $(TOP)/../../../ISIS_CONFIG
 -include $(TOP)/../../../ISIS_CONFIG.$(EPICS_HOST_ARCH)
+
+include $(AREA_DETECTOR)/configure/RELEASE_SUPPORT.local
+-include $(AREA_DETECTOR)/configure/RELEASE_SUPPORT.local.$(EPICS_HOST_ARCH)
+include $(AREA_DETECTOR)/configure/RELEASE_LIBS.local
 
 # IOC-specific support module

@@ -97,7 +97,11 @@ int main(int argc, char* argv[])
             if (caen_ascii_format) {
                 fprintf(out_f, "%llu\t%d\t0x%08x\t\n", trigger_time, energy, extras);
             } else {
-                fprintf(out_f, "frame %llu: %llu %d ( %s )\r\n", trigger_time, trigger_time - frame_time, energy, describeFlags(extras).c_str());
+                if ( energy > 0 && (!(extras & 0x8)) )
+                {
+                    fprintf(out_f, "frame %llu: %llu %d ( %s )\r\n", trigger_time, trigger_time - frame_time,
+                                    energy, describeFlags(extras).c_str());
+                }
             }
         }
     } while(!exit_when_done);

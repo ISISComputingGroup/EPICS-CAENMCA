@@ -10,8 +10,10 @@
 #ifndef CAENMCADRIVER_H
 #define CAENMCADRIVER_H
 
+#include "ADDriver.h"
+
 /// EPICS Asyn port driver class. 
-class epicsShareClass CAENMCADriver : public asynPortDriver 
+class epicsShareClass CAENMCADriver : public ADDriver 
 {
 public:
 	CAENMCADriver(const char *portName, const char *deviceName);
@@ -20,11 +22,20 @@ public:
     virtual asynStatus readFloat64(asynUser *pasynUser, epicsFloat64 *value);
 	virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
 	virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t maxChars, size_t *nActual);
-
+    virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
+    virtual asynStatus readFloat64Array(asynUser *pasynUser, epicsFloat64 *value, size_t nElements, size_t *nIn);
+    virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value, size_t nElements, size_t *nIn);
+    virtual void setShutter(int addr, int open);
 	virtual void report(FILE* fp, int details);
 
 private:
-
+    void updateAD();
+    void clearEnergySpectrum(int channel_id);
+    NDArray* m_pRaw;
+    void setADAcquire(int addr, int acquire);
+        int computeImage(int addr, const std::vector<double>& data, int nx, int ny);
+    template <typename epicsType> 
+         int computeArray(int addr, const std::vector<double>& data, int maxSizeX, int maxSizeY);
     CAEN_MCA_HANDLE m_device_h;
     std::vector<CAEN_MCA_HANDLE> m_chan_h;
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
@@ -113,7 +124,14 @@ private:
  	int P_eventsSpecNTimeTagReset; // int
  	int P_eventsSpecNEventEnergySat; // int
     int P_eventsSpecMaxEventTime; // double
-	int P_vmon; // double
+	int P_nFakeEvents; // int
+	int P_nImpDynamSatEvent; // int
+	int P_nPileupEvent; // int
+	int P_nEventEnergyOutSCA; // int
+	int P_nEventDurSatInhibit; // int
+	int P_nEventNotBinned; // int
+	int P_nEventEnergyDiscard; // int
+  	int P_vmon; // double
 	int P_vset; // double
 	int P_imon; // double
 	int P_iset; // double
@@ -210,5 +228,12 @@ private:
 #define P_eventsSpecNTimeTagResetString "EVENTSPECNTTRESET"
 #define P_eventsSpecNEventEnergySatString "EVENTSPECNENGSAT"
 #define P_eventsSpecMaxEventTimeString "EVENTSPECMAXEVENTTIME"
+#define P_nFakeEventsString         "NFAKEEVENTS"
+#define P_nImpDynamSatEventString   "NIMPDYNAMSATEVENT"
+#define P_nPileupEventString        "NPILEUPEVENT"
+#define P_nEventEnergyOutSCAString  "NEVENTENERGYOUTSCA"
+#define P_nEventDurSatInhibitString "NEVENTDURSATINHIBIT"
+#define P_nEventNotBinnedString     "NEVENTNOTBINNED"
+#define P_nEventEnergyDiscardString "NEVENTENERGYDISCARD"
 
 #endif /* CAENMCADRIVER_H */

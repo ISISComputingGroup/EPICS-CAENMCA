@@ -40,6 +40,8 @@ endif
 
 USR_CFLAGS += -I$(CAENMCALIB)/include
 USR_CPPFLAGS += -I$(CAENMCALIB)/include
+USR_INCLUDES += -I"$(AREA_DETECTOR)"
+USR_CXXFLAGS += -DNOMINMAX
 
 # under linux we make CAENMCA a sys lib, this is so we 
 # get passed a -Wl,dynamic flag in all builds and avoids us
@@ -56,6 +58,8 @@ LIB_INSTALLS_WIN32 += $(CAENMCALIB)/lib/$(CAENARCH)/CAENMCA.lib
 LIB_INSTALLS_Linux += $(CAENMCALIB)/lib/$(CAENARCH)/libCAENMCA.so $(CAENMCALIB)/lib/$(CAENARCH)/libCAENUtility.so
 
 #===========================
+
+include $(ADCORE)/ADApp/commonLibraryMakefile
 
 include $(TOP)/configure/RULES
 #----------------------------------------

@@ -380,6 +380,49 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NEV")
 	field(SCAN, "I/O Intr")
 }
 
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NFAKE")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NFAKEEVENTS")
+	field(SCAN, "I/O Intr")
+}
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NIMPDYNSAT")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NIMPDYNAMSATEVENT")
+	field(SCAN, "I/O Intr")
+}
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NPILEUP")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NPILEUPEVENT")
+	field(SCAN, "I/O Intr")
+}
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGOUTSCA")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTENERGYOUTSCA")
+	field(SCAN, "I/O Intr")
+}
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NDURSATINHB")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTDURSATINHIBIT")
+	field(SCAN, "I/O Intr")
+}
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NNOTBINNED")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTNOTBINNED")
+	field(SCAN, "I/O Intr")
+}
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGDISCARD")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTENERGYDISCARD")
+	field(SCAN, "I/O Intr")
+}
+
 record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTTROLL")
 {
     field(DTYP, "asynInt32")
