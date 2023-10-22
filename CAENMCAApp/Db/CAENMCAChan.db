@@ -480,7 +480,6 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:TMAX")
 record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC:TMAX:SP")
 {
     field(DTYP, "asynFloat64")
-	field(VAL, "0")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECTMAX")
 	field(PINI, "YES")
 	field(EGU, "ns")
