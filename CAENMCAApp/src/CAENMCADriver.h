@@ -29,18 +29,20 @@ public:
 	virtual void report(FILE* fp, int details);
 
 private:
-    void updateAD();
+    void updateAD(int addr, bool new_events);
     void clearEnergySpectrum(int channel_id);
     NDArray* m_pRaw;
     void setADAcquire(int addr, int acquire);
-        int computeImage(int addr, const std::vector<double>& data, int nx, int ny);
-    template <typename epicsType> 
-         int computeArray(int addr, const std::vector<double>& data, int maxSizeX, int maxSizeY);
+    template <typename epicsType>
+        int computeImage(int addr, const std::vector<epicsType>& data, int nx, int ny);
+    template <typename epicsTypeOut, typename epicsTypeIn> 
+        int computeArray(int addr, const std::vector<epicsTypeIn>& data, int maxSizeX, int maxSizeY);
     CAEN_MCA_HANDLE m_device_h;
     std::vector<CAEN_MCA_HANDLE> m_chan_h;
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
 	std::vector<epicsInt32> m_energy_spec[2];
 	std::vector<epicsInt32> m_energy_spec_event[2];
+	std::vector<epicsInt32> m_event_spec_2d[2];
 	std::vector<epicsFloat64> m_event_spec_x[2];
 	std::vector<epicsFloat64> m_event_spec_y[2];
     std::vector<std::string> m_old_list_filename;
@@ -88,7 +90,7 @@ private:
     void setListModeType(int32_t channel_id,  CAEN_MCA_ListSaveMode_t mode);
     void setEnergySpectrumAutosave(int32_t channel_id, int32_t spectrum_id, double period);
     void setListModeEnable(int32_t channel_id,  bool enable);
-    void processListFile(int channel_id);
+    bool processListFile(int channel_id);
     void incrIntParam(int channel_id, int param, int incr);
 
 #define FIRST_CAEN_PARAM P_deviceName
@@ -113,17 +115,25 @@ private:
     int P_energySpecAutosave; // double
     int P_energySpecClear; // int
 	int P_nEvents; // int
+	int P_nEventsProcessed; // int
  	int P_eventsSpecY; // double array
  	int P_eventsSpecX; // double array
+ 	int P_eventsSpecTMin; // float
+ 	int P_eventsSpecTMax; // float
+    int P_eventsSpecNBins; // int
+    int P_eventsSpecTBinWidth; // float
  	int P_eventsSpecNEvents; // int
  	int P_eventsSpecNTriggers; // int
  	int P_eventsSpecTriggerRate; // double
-    int P_eventsSpecNBins; // int
-    int P_eventsSpecBinWidth; // double
  	int P_eventsSpecNTimeTagRollover; // int
  	int P_eventsSpecNTimeTagReset; // int
  	int P_eventsSpecNEventEnergySat; // int
     int P_eventsSpecMaxEventTime; // double
+    int P_eventSpec2DTimeMin; // double
+    int P_eventSpec2DTimeMax; // double
+    int P_eventSpec2DNTimeBins; // int
+    int P_eventSpec2DTBinWidth; // double
+    int P_eventSpec2DEnergyBinGroup; // int
 	int P_nFakeEvents; // int
 	int P_nImpDynamSatEvent; // int
 	int P_nPileupEvent; // int
@@ -190,6 +200,7 @@ private:
 #define P_energySpecUnderflowsString "ENERGYSPECUNDERFLOWS"
 #define P_energySpecAutosaveString "ENERGYSPECAUTOSAVE"
 #define P_nEventsString "NEVENTS"
+#define P_nEventsProcessedString "NEVENTSPROCESSED"
 #define P_vmonString "VMON"
 #define P_vsetString "VSET"
 #define P_imonString "IMON"
@@ -223,7 +234,9 @@ private:
 #define P_eventsSpecNTriggersString    "EVENTSPECNTRIG"
 #define P_eventsSpecTriggerRateString  "EVENTSPECTRIGRATE"
 #define P_eventsSpecNBinsString   "EVENTSPECNBINS"
-#define P_eventsSpecBinWidthString  "EVENTSPECBINW"
+#define P_eventsSpecTBinWidthString      "EVENTSPECTBINW"
+#define P_eventsSpecTMinString  "EVENTSPECTMIN"
+#define P_eventsSpecTMaxString  "EVENTSPECTMAX"
 #define P_eventsSpecNTimeTagRolloverString "EVENTSPECNTTROLLOVER"
 #define P_eventsSpecNTimeTagResetString "EVENTSPECNTTRESET"
 #define P_eventsSpecNEventEnergySatString "EVENTSPECNENGSAT"
@@ -235,5 +248,10 @@ private:
 #define P_nEventDurSatInhibitString "NEVENTDURSATINHIBIT"
 #define P_nEventNotBinnedString     "NEVENTNOTBINNED"
 #define P_nEventEnergyDiscardString "NEVENTENERGYDISCARD"
+#define P_eventSpec2DTimeMinString        "EVENTSPEC2DTIMEMIN"
+#define P_eventSpec2DTimeMaxString        "EVENTSPEC2DTIMEMAX"
+#define P_eventSpec2DNTimeBinsString      "EVENTSPEC2DNTIMEBINS"
+#define P_eventSpec2DEnergyBinGroupString       "EVENTSPEC2DENGBINGROUP"
+#define P_eventSpec2DTBinWidthString      "EVENTSPEC2DTBINW"
 
 #endif /* CAENMCADRIVER_H */
