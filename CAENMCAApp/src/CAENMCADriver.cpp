@@ -371,6 +371,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 	createParam(P_energySpecUnderflowsString, asynParamInt32, &P_energySpecUnderflows);
 	createParam(P_energySpecAutosaveString, asynParamFloat64, &P_energySpecAutosave);
 	createParam(P_nEventsString, asynParamInt32, &P_nEvents);
+	createParam(P_nEventsProcessedString, asynParamInt32, &P_nEventsProcessed);
 	createParam(P_vmonString, asynParamFloat64, &P_vmon);
 	createParam(P_vsetString, asynParamFloat64, &P_vset);
 	createParam(P_imonString, asynParamFloat64, &P_imon);
@@ -1014,6 +1015,7 @@ void CAENMCADriver::energySpectrumSetProperty(CAEN_MCA_HANDLE channel, int32_t s
 
 void CAENMCADriver::pollerTask()
 {
+    bool new_data;
 	epicsThreadSleep(0.2); // to allow class constructror to complete
 	while(true)
 	{
@@ -1030,9 +1032,9 @@ void CAENMCADriver::pollerTask()
             getHVInfo(i);
             getChannelInfo(i);
 		    getLists(i);
-            processListFile(i);
+            new_data = processListFile(i);
 		    callParamCallbacks(i);
-			updateAD(i);
+			updateAD(i, new_data);
 		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
 		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
 		    doCallbacksInt32Array(m_energy_spec_event[i].data(), m_energy_spec_event[i].size(), P_energySpecEvent, i);
@@ -1388,7 +1390,7 @@ static std::string describeFlags(unsigned flags)
     return s;
 }
 
-void CAENMCADriver::processListFile(int channel_id)
+bool CAENMCADriver::processListFile(int channel_id)
 {
     std::string filename, deviceName, ethPrefix = "eth://";
     int enabled = 0, save_mode;
@@ -1407,6 +1409,7 @@ void CAENMCADriver::processListFile(int channel_id)
     uint32_t extras;
     const size_t EVENT_SIZE = 14;
     struct stat stat_struct;
+    bool new_data = false;
     std::string prefix = "\\\\127.0.0.1\\storage\\";
     if (!deviceName.compare(0, ethPrefix.size(), ethPrefix)) {
         prefix = std::string("\\\\") + deviceName.substr(ethPrefix.size()) + "\\storage\\";
@@ -1415,7 +1418,7 @@ void CAENMCADriver::processListFile(int channel_id)
     if ( (sizeof(trigger_time) + sizeof(energy) + sizeof(extras)) != EVENT_SIZE )
     {
         std::cerr << "size error" << std::endl;
-        return;
+        return new_data;
     }
     if (!enabled || save_mode != CAEN_MCA_SAVEMODE_FILE_BINARY)
     {
@@ -1424,7 +1427,7 @@ void CAENMCADriver::processListFile(int channel_id)
             fclose(f);
             f = NULL;
         }
-        return;
+        return new_data;
     }
     int64_t frame = 0, last_pos, current_pos = 0, new_bytes, nevents;
     m_energy_spec_event[channel_id].resize(32768);
@@ -1432,10 +1435,11 @@ void CAENMCADriver::processListFile(int channel_id)
 	{
 		current_pos = _ftelli64(f);
 	}
-    int nevents_real = 0, ev_nbins = 0, nevents_real_es = 0;
+    int nevents_real_ev = 0, ev_nbins = 0, nevents_real_es = 0;
     int ntimerollover = 0, ntimereset = 0, neventenergysat = 0;
     int nfakeevent = 0, nimpdynamsatevent = 0, npileupevent = 0;
-    int neventenergyoutsca = 0, neventdursatinhibit = 0, neventnotbinned = 0, neventenergydiscard = 0;
+    int neventenergyoutsca = 0, neventdursatinhibit = 0;
+    int nevent2dnotbinned = 0, neventnotbinned = 0, neventenergydiscard = 0;
     double ev_tmin = 0.0, ev_tmax = 0.0;
     getDoubleParam(channel_id, P_eventsSpecTMin, &ev_tmin);
     getDoubleParam(channel_id, P_eventsSpecTMax, &ev_tmax);
@@ -1457,6 +1461,8 @@ void CAENMCADriver::processListFile(int channel_id)
     setDoubleParam(channel_id, P_eventSpec2DTBinWidth, ev2d_tbinw);
     if (f == NULL || filename != m_old_list_filename[channel_id] || current_pos == -1 || current_pos != m_event_file_last_pos[channel_id])
     {
+        new_data = true;
+        setIntegerParam(channel_id, P_nEventsProcessed, 0);
         setIntegerParam(channel_id, P_energySpecEventNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNTriggers, 0);
@@ -1483,11 +1489,11 @@ void CAENMCADriver::processListFile(int channel_id)
         }
         if (stat(p_filename.c_str(), &stat_struct) != 0 || stat_struct.st_size == 0)
         {
-            return;
+            return new_data;
         }
         if ( (f = _fsopen(p_filename.c_str(), "rb", _SH_DENYNO)) == NULL )
         {
-            return;
+            return new_data;
         }
         m_old_list_filename[channel_id] = filename;
         m_event_file_last_pos[channel_id] = 0;
@@ -1497,17 +1503,17 @@ void CAENMCADriver::processListFile(int channel_id)
     if (_fseeki64(f, 0, SEEK_END) != 0)
     {
         std::cerr << "fseek forward error" << std::endl;
-        return;
+        return new_data;
     }   
     if ( (current_pos = _ftelli64(f)) == -1)
     {
         std::cerr << "ftell curr error" << std::endl;
-        return;
+        return new_data;
     }
     if (_fseeki64(f, m_event_file_last_pos[channel_id], SEEK_SET) != 0)
     {
         std::cerr << "fseek back error" << std::endl;
-        return;
+        return new_data;
     }   
     setDoubleParam(channel_id, 	P_listFileSize, (double)current_pos / (1024.0 * 1024.0)); // convert to MBytes
     new_bytes = current_pos - m_event_file_last_pos[channel_id];
@@ -1515,13 +1521,14 @@ void CAENMCADriver::processListFile(int channel_id)
 	{
 		fclose(f);
 		f = NULL;
-		return;
+		return new_data;
 	}
     nevents = new_bytes / EVENT_SIZE;
     if (nevents == 0)
     {
-        return;
+        return new_data;
     }
+    new_data = true;
     for(int i=0; i<ev_nbins; ++i)
     {
         m_event_spec_x[channel_id][i] = ev_tmin + i * ev_binw;
@@ -1535,17 +1542,17 @@ void CAENMCADriver::processListFile(int channel_id)
         if (fread(&trigger_time, sizeof(trigger_time), 1, f) != 1)
         {
             std::cerr << "fread time error" << std::endl;
-            return;
+            return new_data;
         }
         if (fread(&energy, sizeof(energy), 1, f) != 1)
         {
             std::cerr << "fread energy error" << std::endl;
-            return;
+            return new_data;
         }
         if (fread(&extras, sizeof(extras), 1, f) != 1)
         {
             std::cerr << "fread extras error" << std::endl;
-            return;
+            return new_data;
         }
         trigger_time /= 1000;  // convert from ps to ns
         force_trigger = false;
@@ -1587,7 +1594,6 @@ void CAENMCADriver::processListFile(int channel_id)
         }
         if ( energy > 0 && (!(extras & 0x8)) )
         {
-            ++nevents_real;
             uint64_t tdiff = trigger_time - m_frame_time[channel_id];
             if (tdiff > max_event_time) {
                 max_event_time = tdiff;
@@ -1597,6 +1603,7 @@ void CAENMCADriver::processListFile(int channel_id)
                 if (n >= 0 && n < ev_nbins)
                 {
                     m_event_spec_y[channel_id][n] += 1.0;
+                    ++nevents_real_ev;
                 }
                 else
                 {
@@ -1606,6 +1613,10 @@ void CAENMCADriver::processListFile(int channel_id)
                 if (n >= 0 && n < eventSpec2d_nTBins)
                 {
 					m_event_spec_2d[channel_id][n * eventSpec2d_nx + energy / eventSpec2d_engBinGroup] += 1;
+                }
+                else
+                {
+                    ++nevent2dnotbinned;
                 }
                 if ((es_tmin >= es_tmax) || (tdiff >= es_tmin && tdiff <= es_tmax))
                 {
@@ -1618,10 +1629,14 @@ void CAENMCADriver::processListFile(int channel_id)
         }
         //std::cout << frame << ": " << trigger_time << "  " << trigger_time - m_frame_time[channel_id] << "  " << energy << "  (" << describeFlags(extras) << ")" << std::endl;
     }
+    if (nevent2dnotbinned != neventnotbinned) {
+        energy = 0;
+    }
     // checking if max_event_time > m_max_event_time[channel_id] may not always be sensible
     m_max_event_time[channel_id] = max_event_time;
     m_event_file_last_pos[channel_id] = _ftelli64(f);
-    incrIntParam(channel_id, P_eventsSpecNEvents, nevents_real);
+    incrIntParam(channel_id, P_nEventsProcessed, nevents);
+    incrIntParam(channel_id, P_eventsSpecNEvents, nevents_real_ev);
     incrIntParam(channel_id, P_energySpecEventNEvents, nevents_real_es);
     incrIntParam(channel_id, P_eventsSpecNTriggers, frame);
     incrIntParam(channel_id, P_eventsSpecNTimeTagRollover, ntimerollover);
@@ -1640,7 +1655,7 @@ void CAENMCADriver::processListFile(int channel_id)
         setDoubleParam(channel_id, P_eventsSpecTriggerRate, 0.0);
     }
     setDoubleParam(channel_id, P_eventsSpecMaxEventTime, m_max_event_time[channel_id]);
-    return;
+    return new_data;
 }
 
 void CAENMCADriver::incrIntParam(int channel_id, int param, int incr)
@@ -1651,7 +1666,7 @@ void CAENMCADriver::incrIntParam(int channel_id, int param, int incr)
     }
 }
 
-void CAENMCADriver::updateAD(int addr)
+void CAENMCADriver::updateAD(int addr, bool new_data)
 {
     static const char* functionName = "updateAD";
 	int acquiring;
@@ -1680,13 +1695,15 @@ void CAENMCADriver::updateAD(int addr)
 				if (acquiring == 0)
 				{
 					old_acquiring[addr] = acquiring;
-					return;
 				}
-				if (old_acquiring[addr] == 0)
+				else if (old_acquiring[addr] == 0 && acquiring == 1)
 				{
 					setIntegerParam(addr, ADNumImagesCounter, 0);
 					old_acquiring[addr] = acquiring;
 				}
+			    if (!new_data) {
+                    return;
+                }
 				setIntegerParam(addr, ADStatus, ADStatusAcquire); 
 				epicsTimeGetCurrent(&startTime);
 				getIntegerParam(addr, ADImageMode, &imageMode);
@@ -1997,8 +2014,6 @@ int CAENMCADriver::computeImage(int addr, const std::vector<epicsType>& data, in
     return(status);
 }
 
-
-
 // supplied array of x,y,t
 template <typename epicsTypeOut, typename epicsTypeIn> 
 int CAENMCADriver::computeArray(int addr, const std::vector<epicsTypeIn>& data, int sizeX, int sizeY)
@@ -2047,7 +2062,7 @@ int CAENMCADriver::computeArray(int addr, const std::vector<epicsTypeIn>& data, 
 			case NDColorModeMono:
 				for (j=0; j<sizeX; j++) {
 					pMono[k] = static_cast<epicsTypeOut>(gain * data[k]);
-					++k;
+                    ++k;
 				}
 				break;
 			case NDColorModeRGB1:

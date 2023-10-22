@@ -274,6 +274,13 @@ record(longin, "$(P)$(Q)C$(CHAN):NEVENTS")
 	field(SCAN, "I/O Intr")
 }
 
+record(longin, "$(P)$(Q)C$(CHAN):NEVENTSPROC")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTSPROCESSED")
+	field(SCAN, "I/O Intr")
+}
+
 record(bi, "$(P)$(Q)C$(CHAN):ENABLED")
 {
     field(DTYP, "asynInt32")

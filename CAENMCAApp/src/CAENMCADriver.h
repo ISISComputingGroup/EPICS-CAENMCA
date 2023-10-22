@@ -29,7 +29,7 @@ public:
 	virtual void report(FILE* fp, int details);
 
 private:
-    void updateAD(int addr);
+    void updateAD(int addr, bool new_events);
     void clearEnergySpectrum(int channel_id);
     NDArray* m_pRaw;
     void setADAcquire(int addr, int acquire);
@@ -90,7 +90,7 @@ private:
     void setListModeType(int32_t channel_id,  CAEN_MCA_ListSaveMode_t mode);
     void setEnergySpectrumAutosave(int32_t channel_id, int32_t spectrum_id, double period);
     void setListModeEnable(int32_t channel_id,  bool enable);
-    void processListFile(int channel_id);
+    bool processListFile(int channel_id);
     void incrIntParam(int channel_id, int param, int incr);
 
 #define FIRST_CAEN_PARAM P_deviceName
@@ -115,6 +115,7 @@ private:
     int P_energySpecAutosave; // double
     int P_energySpecClear; // int
 	int P_nEvents; // int
+	int P_nEventsProcessed; // int
  	int P_eventsSpecY; // double array
  	int P_eventsSpecX; // double array
  	int P_eventsSpecTMin; // float
@@ -199,6 +200,7 @@ private:
 #define P_energySpecUnderflowsString "ENERGYSPECUNDERFLOWS"
 #define P_energySpecAutosaveString "ENERGYSPECAUTOSAVE"
 #define P_nEventsString "NEVENTS"
+#define P_nEventsProcessedString "NEVENTSPROCESSED"
 #define P_vmonString "VMON"
 #define P_vsetString "VSET"
 #define P_imonString "IMON"
