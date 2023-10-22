@@ -21,8 +21,9 @@ record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMIN:SP")
     field(DTYP, "asynFloat64")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMIN")
 	field(PREC, 3)
-	field(EGU, "")
+	field(EGU, "ns")
 	field(PINI, "YES")
+	field(VAL, "0.0")
 	info(autosaveFields, "VAL")
 }
 
@@ -30,8 +31,8 @@ record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMIN")
 {
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMIN")
-	field(PREC, 3)
-	field(EGU, "")
+	field(PREC, 1)
+	field(EGU, "ns")
 	field(SCAN, "I/O Intr")
 }
 
@@ -39,9 +40,10 @@ record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMAX:SP")
 {
     field(DTYP, "asynFloat64")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMAX")
-	field(PREC, 3)
-	field(EGU, "")
+	field(PREC, 1)
+	field(EGU, "ns")
 	field(PINI, "YES")
+	field(VAL, "20000000")
 	info(autosaveFields, "VAL")
 }
 
@@ -49,8 +51,8 @@ record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMAX")
 {
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMAX")
-	field(EGU, "")
-	field(PREC, 3)
+	field(EGU, "ns")
+	field(PREC, 1)
 	field(SCAN, "I/O Intr")
 }
 
@@ -58,6 +60,103 @@ record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:CNTS")
 {
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTNEVENTS")
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMIN:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(EGU, "ns")
+	field(PREC, 1)
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTIMEMIN")
+	field(PINI, "YES")
+	field(VAL, "0")
+	info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMIN")
+{
+    field(DTYP, "asynFloat64")
+	field(EGU, "ns")
+	field(PREC, 1)
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTIMEMIN")
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMAX:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(EGU, "ns")
+	field(PREC, 1)
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTIMEMAX")
+	field(PINI, "YES")
+	field(VAL, "20000000")
+	info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMAX")
+{
+    field(DTYP, "asynFloat64")
+	field(EGU, "ns")
+	field(PREC, 1)
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTIMEMAX")
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TBINW")
+{
+    field(DTYP, "asynFloat64")
+	field(EGU, "ns")
+	field(PREC, 1)
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTBINW")
+	field(SCAN, "I/O Intr")
+}
+
+record(longout, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:NTBINS:SP")
+{
+    field(DTYP, "asynInt32")
+	field(EGU, "")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DNTIMEBINS")
+	field(PINI, "YES")
+	field(VAL, "1000")
+	info(autosaveFields, "VAL")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:NTBINS")
+{
+    field(DTYP, "asynInt32")
+	field(EGU, "")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DNTIMEBINS")
+	field(SCAN, "I/O Intr")
+}
+
+record(mbbo, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:ENGBG:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DENGBINGROUP")
+	field(PINI, "YES")
+	field(ZRST, "one")
+	field(ZRVL, "1")
+	field(ONST, "two")
+	field(ONVL, "2")
+	field(TWST, "four")
+	field(TWVL, "4")
+	field(THST, "eight")
+	field(THVL, "8")
+	field(FRST, "sixteen")
+	field(FRVL, "16")
+	field(FVST, "thirty-two")
+	field(FVVL, "32")
+	field(SXST, "sixty-four")
+	field(SXVL, "64")
+	field(VAL, "4") # start with grouping of 16
+	info(autosaveFields, "VAL")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:ENGBG")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DENGBINGROUP")
 	field(SCAN, "I/O Intr")
 }
 
@@ -342,17 +441,61 @@ record(longout, "$(P)$(Q)C$(CHAN):EVENTSPEC:NBINS:SP")
 	info(autosaveFields, "VAL")
 }
 
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:TMIN")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECTMIN")
+	field(EGU, "ns")
+	field(PREC, 1)
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC:TMIN:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(VAL, "0")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECTMIN")
+	field(PINI, "YES")
+	field(EGU, "ns")
+	field(PREC, 1)
+	info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:TMAX")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECTMAX")
+	field(PREC, 1)
+	field(EGU, "ns")
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC:TMAX:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(VAL, "0")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECTMAX")
+	field(PINI, "YES")
+	field(EGU, "ns")
+	field(VAL, "20000000")
+	field(PREC, 1)
+	info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:TBINW")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECTBINW")
+	field(EGU, "ns")
+	field(SCAN, "I/O Intr")
+	field(PREC, 1)
+}
+
+
 record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTRIG")
 {
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTRIG")
-	field(SCAN, "I/O Intr")
-}
-
-record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:BINW")
-{
-    field(DTYP, "asynFloat64")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECBINW")
 	field(SCAN, "I/O Intr")
 }
 
@@ -362,15 +505,6 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:TRIG:RATE")
 	field(EGU, "Hz")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECTRIGRATE")
 	field(SCAN, "I/O Intr")
-}
-
-record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC:BINW:SP")
-{
-    field(DTYP, "asynFloat64")
-	field(VAL, "10")
-	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECBINW")
-	field(PINI, "YES")
-	info(autosaveFields, "VAL")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NEV")
@@ -447,8 +581,8 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGSAT")
 record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:MAXTIME")
 {
     field(DTYP, "asynFloat64")
-	field(EGU, "")
-	field(PREC, "3")
+	field(EGU, "ns")
+	field(PREC, "1")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECMAXEVENTTIME")
 	field(SCAN, "I/O Intr")
 }
@@ -457,6 +591,7 @@ record(waveform, "$(P)$(Q)C$(CHAN):EVENTSPEC:X")
 {
     field(DTYP, "asynFloat64ArrayIn")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECX")
+	field(EGU, "ns")
 	field(NELM, 10000)
 	field(FTVL, "DOUBLE")
 	field(SCAN, "I/O Intr")
