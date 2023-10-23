@@ -41,6 +41,8 @@ int main(int argc, char* argv[])
     int64_t frame = 0, last_pos, current_pos, new_bytes, nevents;
     if (caen_ascii_format) {
         fprintf(out_f, "TIMETAG\t\tENERGY\tFLAGS\t\n");
+    } else {
+        fprintf(out_f, "time_abs\ttime_rel_to_trigger\tENERGY\tEXTRAS\tDESC\r\n");
     }
     do
     {
@@ -97,11 +99,11 @@ int main(int argc, char* argv[])
             if (caen_ascii_format) {
                 fprintf(out_f, "%llu\t%d\t0x%08x\t\n", trigger_time, energy, extras);
             } else {
-                if ( energy > 0 && (!(extras & 0x8)) )
-                {
-                    fprintf(out_f, "frame %llu: %llu %d ( %s )\r\n", trigger_time, trigger_time - frame_time,
-                                    energy, describeFlags(extras).c_str());
-                }
+                //if ( energy > 0 && (!(extras & 0x8)) )
+                //{
+                    fprintf(out_f, "%llu\t%llu\t%d\t0x%08x\t%s\r\n", trigger_time, trigger_time - frame_time,
+                                    energy, extras, describeFlags(extras).c_str());
+                //}
             }
         }
     } while(!exit_when_done);
@@ -156,7 +158,7 @@ static std::string describeFlags(unsigned flags)
     }
     if (flags & 0x20000)
     {
-        s += "Event energy is outside the SCA interval, ";
+        s += "Event outside SCA interval, ";
         flags &= ~0x20000;
     }
     if (flags & 0x40000)

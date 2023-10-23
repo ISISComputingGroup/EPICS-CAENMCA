@@ -48,6 +48,7 @@
 #define _fseeki64 fseek
 #endif /* ndef _WIN32 */
 
+#define MAX_ENERGY_BINS  32768   /* need to check energy bin bits? */
 
 static const char *driverName = "CAENMCADriver"; ///< Name of driver for use in message printing 
 
@@ -1430,7 +1431,7 @@ bool CAENMCADriver::processListFile(int channel_id)
         return new_data;
     }
     int64_t frame = 0, last_pos, current_pos = 0, new_bytes, nevents;
-    m_energy_spec_event[channel_id].resize(32768);
+    m_energy_spec_event[channel_id].resize(MAX_ENERGY_BINS);
 	if (f != NULL)
 	{
 		current_pos = _ftelli64(f);
@@ -1451,7 +1452,7 @@ bool CAENMCADriver::processListFile(int channel_id)
     setDoubleParam(channel_id, P_eventsSpecTBinWidth, ev_binw);
     m_event_spec_x[channel_id].resize(ev_nbins);
     m_event_spec_y[channel_id].resize(ev_nbins);
-    int eventSpec2d_nx = 32768 / eventSpec2d_engBinGroup;
+    int eventSpec2d_nx = MAX_ENERGY_BINS / eventSpec2d_engBinGroup;
     int eventSpec2d_ny = eventSpec2d_nTBins;
 	m_event_spec_2d[channel_id].resize(eventSpec2d_nx * eventSpec2d_ny);
     double ev2d_tbinw = 0.0;
@@ -1629,9 +1630,6 @@ bool CAENMCADriver::processListFile(int channel_id)
         }
         //std::cout << frame << ": " << trigger_time << "  " << trigger_time - m_frame_time[channel_id] << "  " << energy << "  (" << describeFlags(extras) << ")" << std::endl;
     }
-    if (nevent2dnotbinned != neventnotbinned) {
-        energy = 0;
-    }
     // checking if max_event_time > m_max_event_time[channel_id] may not always be sensible
     m_max_event_time[channel_id] = max_event_time;
     m_event_file_last_pos[channel_id] = _ftelli64(f);
@@ -1684,7 +1682,7 @@ void CAENMCADriver::updateAD(int addr, bool new_data)
     int eventSpec2d_nTBins = 0, eventSpec2d_engBinGroup = 1;
     getIntegerParam(addr, P_eventSpec2DEnergyBinGroup, &eventSpec2d_engBinGroup);
     getIntegerParam(addr, P_eventSpec2DNTimeBins, &eventSpec2d_nTBins);
-    int eventSpec2d_nx = 32768 / eventSpec2d_engBinGroup;
+    int eventSpec2d_nx = MAX_ENERGY_BINS / eventSpec2d_engBinGroup;
     int eventSpec2d_ny = eventSpec2d_nTBins;
 			try 
 			{
