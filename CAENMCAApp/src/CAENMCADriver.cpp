@@ -425,6 +425,8 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     createParam(P_eventSpec2DNTimeBinsString, asynParamInt32, &P_eventSpec2DNTimeBins);
     createParam(P_eventSpec2DEnergyBinGroupString, asynParamInt32, &P_eventSpec2DEnergyBinGroup);
     createParam(P_eventSpec2DTBinWidthString, asynParamFloat64, &P_eventSpec2DTBinWidth);
+    createParam(P_loadDataFileString, asynParamInt32, &P_loadDataFile);
+    createParam(P_loadDataFileNameString, asynParamOctet, &P_loadDataFileName);
 
     NDDataType_t dataType = NDInt32; // data type for each frame
     int status = 0;
@@ -456,6 +458,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 		status |= setIntegerParam(i, ADNumImages, 100);
         status |= setIntegerParam(i, ADNumImagesCounter, 0);
         status |= setIntegerParam(i, P_eventSpec2DEnergyBinGroup, 64); // must be a valid value in Db
+        status |= setIntegerParam(i, P_loadDataFile, 0);
     }
 
     if (status) {
@@ -1394,10 +1397,11 @@ static std::string describeFlags(unsigned flags)
 bool CAENMCADriver::processListFile(int channel_id)
 {
     std::string filename, deviceName, ethPrefix = "eth://";
-    int enabled = 0, save_mode;
+    int enabled = 0, save_mode, load_data_file = 0;
 	getStringParam(channel_id, P_listFile, filename);
 	getIntegerParam(channel_id, P_listEnabled, &enabled);
 	getIntegerParam(channel_id, P_listSaveMode, &save_mode);
+    getIntegerParam(channel_id, P_loadDataFile, &load_data_file);
     double eventSpec2d_TMin = 0.0, eventSpec2d_TMax = 0.0;
     int eventSpec2d_nTBins = 0, eventSpec2d_engBinGroup = 1;
 	getStringParam(P_deviceName, deviceName);
@@ -1421,7 +1425,11 @@ bool CAENMCADriver::processListFile(int channel_id)
         std::cerr << "size error" << std::endl;
         return new_data;
     }
-    if (!enabled || save_mode != CAEN_MCA_SAVEMODE_FILE_BINARY)
+    if (load_data_file != 0) {
+        setIntegerParam(channel_id, P_loadDataFile, 0);
+        setADAcquire(channel_id, 1);
+    }        
+    else if (!enabled || save_mode != CAEN_MCA_SAVEMODE_FILE_BINARY)
     {
         if (f != NULL)
         {
@@ -1442,6 +1450,8 @@ bool CAENMCADriver::processListFile(int channel_id)
     int neventenergyoutsca = 0, neventdursatinhibit = 0;
     int nevent2dnotbinned = 0, neventnotbinned = 0, neventenergydiscard = 0;
     double ev_tmin = 0.0, ev_tmax = 0.0;
+    FILE* save_f = NULL;
+    int64_t save_event_file_last_pos = 0;
     getDoubleParam(channel_id, P_eventsSpecTMin, &ev_tmin);
     getDoubleParam(channel_id, P_eventsSpecTMax, &ev_tmax);
     getIntegerParam(channel_id, P_eventsSpecNBins, &ev_nbins);
@@ -1460,7 +1470,8 @@ bool CAENMCADriver::processListFile(int channel_id)
         ev2d_tbinw = (eventSpec2d_TMax - eventSpec2d_TMin) / eventSpec2d_nTBins;
     }
     setDoubleParam(channel_id, P_eventSpec2DTBinWidth, ev2d_tbinw);
-    if (f == NULL || filename != m_old_list_filename[channel_id] || current_pos == -1 || current_pos != m_event_file_last_pos[channel_id])
+    if (f == NULL || load_data_file || filename != m_old_list_filename[channel_id] ||
+        current_pos == -1 || current_pos != m_event_file_last_pos[channel_id])
     {
         new_data = true;
         setIntegerParam(channel_id, P_nEventsProcessed, 0);
@@ -1481,9 +1492,18 @@ bool CAENMCADriver::processListFile(int channel_id)
         std::fill(m_energy_spec_event[channel_id].begin(), m_energy_spec_event[channel_id].end(), 0);
         std::fill(m_event_spec_2d[channel_id].begin(), m_event_spec_2d[channel_id].end(), 0);
 
-        std::string p_filename = prefix + filename;
+        std::string p_filename;
+        if (load_data_file) {
+            getStringParam(channel_id, P_loadDataFileName, filename);
+            p_filename = filename;
+            save_f = f;
+            save_event_file_last_pos = m_event_file_last_pos[channel_id];
+        } else {
+            p_filename = prefix + filename;
+        }
         std::replace(p_filename.begin(), p_filename.end(), '/', '\\'); 
-        if (f != NULL)
+        
+        if (f != NULL && !load_data_file)
         {
             fclose(f);
             f = NULL;
@@ -1496,9 +1516,11 @@ bool CAENMCADriver::processListFile(int channel_id)
         {
             return new_data;
         }
-        m_old_list_filename[channel_id] = filename;
-        m_event_file_last_pos[channel_id] = 0;
+        if (!load_data_file) {
+            m_old_list_filename[channel_id] = filename;
+        }
         m_max_event_time[channel_id] = 0;
+        m_event_file_last_pos[channel_id] = 0;
         current_pos = 0;
     }
     if (_fseeki64(f, 0, SEEK_END) != 0)
@@ -1653,6 +1675,11 @@ bool CAENMCADriver::processListFile(int channel_id)
         setDoubleParam(channel_id, P_eventsSpecTriggerRate, 0.0);
     }
     setDoubleParam(channel_id, P_eventsSpecMaxEventTime, m_max_event_time[channel_id]);
+    if (load_data_file) {
+//        setADAcquire(channel_id, 0);
+        m_event_file_last_pos[channel_id] = save_event_file_last_pos;
+        f = save_f;
+    }
     return new_data;
 }
 

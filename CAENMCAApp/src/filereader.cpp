@@ -1,6 +1,8 @@
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <string>
+#include <cstdio>
 #include <cstring>
 #include <epicsThread.h>
 
@@ -18,10 +20,11 @@ int main(int argc, char* argv[])
     const char* input_filename = argv[1];
     const char* output_filename = (argc > 2 ? argv[2] : "");
     bool exit_when_done = (argc > 3 && atoi(argv[3]) != 0);
-    bool caen_ascii_format = (argc > 4 && atoi(argv[4]) != 0);
+    int mode = (argc > 4 ? atoi(argv[4]) : 0);
     uint64_t trigger_time, frame_time = 0;
     int16_t energy;
     uint32_t extras;
+    int fake_events = 0;
     const size_t EVENT_SIZE = 14;
     if ( (sizeof(trigger_time) + sizeof(energy) + sizeof(extras)) != EVENT_SIZE )
     {
@@ -34,15 +37,31 @@ int main(int argc, char* argv[])
     } else {
         out_f = stdout;
     }
-    while( (f = _fsopen(input_filename, "rb", _SH_DENYNO)) == NULL )
-    {
-        epicsThreadSleep(1.0);
-    }
-    int64_t frame = 0, last_pos, current_pos, new_bytes, nevents;
-    if (caen_ascii_format) {
+    int64_t frame = 0, last_pos, current_pos, new_bytes, nevents = 0;
+    if (mode == 2) {
+        std::fstream fs(input_filename);
+        std::string line;
+        std::getline(fs, line, '\n'); // skip header
+        while(fs.good()) {
+            std::getline(fs, line, '\n');
+            if (sscanf(line.c_str(), "%llu %hd %x", &trigger_time, &energy, &extras) == 3) {
+                fwrite(&trigger_time, sizeof(trigger_time), 1, out_f);
+                fwrite(&energy, sizeof(energy), 1, out_f);
+                fwrite(&extras, sizeof(extras), 1, out_f);
+                ++nevents;                
+            }
+        }
+        fclose(out_f);
+        std::cout << "Processed " << nevents << " events" << std::endl;
+        return 0;
+    } else if (mode == 1) {
         fprintf(out_f, "TIMETAG\t\tENERGY\tFLAGS\t\n");
     } else {
         fprintf(out_f, "time_abs\ttime_rel_to_trigger\tENERGY\tEXTRAS\tDESC\r\n");
+    }
+    while( (f = _fsopen(input_filename, "rb", _SH_DENYNO)) == NULL )
+    {
+        epicsThreadSleep(1.0);
     }
     do
     {
@@ -96,7 +115,7 @@ int main(int argc, char* argv[])
                 ++frame;
                 frame_time = trigger_time;
             }
-            if (caen_ascii_format) {
+            if (mode == 1) {
                 fprintf(out_f, "%llu\t%d\t0x%08x\t\n", trigger_time, energy, extras);
             } else {
                 //if ( energy > 0 && (!(extras & 0x8)) )
@@ -112,6 +131,8 @@ int main(int argc, char* argv[])
     fclose(out_f);
     return 0;
 }
+
+
 
 static std::string describeFlags(unsigned flags)
 {

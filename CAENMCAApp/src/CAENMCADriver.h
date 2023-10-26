@@ -141,6 +141,8 @@ private:
 	int P_nEventDurSatInhibit; // int
 	int P_nEventNotBinned; // int
 	int P_nEventEnergyDiscard; // int
+    int P_loadDataFileName; // string
+    int P_loadDataFile; // int
   	int P_vmon; // double
 	int P_vset; // double
 	int P_imon; // double
@@ -253,5 +255,7 @@ private:
 #define P_eventSpec2DNTimeBinsString      "EVENTSPEC2DNTIMEBINS"
 #define P_eventSpec2DEnergyBinGroupString       "EVENTSPEC2DENGBINGROUP"
 #define P_eventSpec2DTBinWidthString      "EVENTSPEC2DTBINW"
+#define P_loadDataFileNameString          "LOADDATAFILENAME"
+#define P_loadDataFileString              "LOADDATAFILE"
 
 #endif /* CAENMCADRIVER_H */
