@@ -621,6 +621,15 @@ record(waveform, "$(P)$(Q)C$(CHAN):LOADFILE:NAME:SP")
 	field(FTVL, "CHAR")
 }
 
+record(waveform, "$(P)$(Q)C$(CHAN):LOADFILE:NAME")
+{
+	field(DESC, "Load File Name")
+    field(DTYP, "asynOctetRead")
+	field(INP, "@asyn($(PORT),$(CHAN),0)LOADDATAFILENAME")
+	field(NELM, 512)
+	field(FTVL, "CHAR")
+}
+
 record(bo, "$(P)$(Q)C$(CHAN):LOADFILE:SP")
 {
 	field(DESC, "Load File")
