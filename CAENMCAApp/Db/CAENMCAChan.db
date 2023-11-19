@@ -633,6 +633,9 @@ record(waveform, "$(P)$(Q)C$(CHAN):LOADFILE:NAME:SP")
 	field(INP, "@asyn($(PORT),$(CHAN),0)LOADDATAFILENAME")
 	field(NELM, 512)
 	field(FTVL, "CHAR")
+	field(UDFS, "NO_ALARM")
+	field(PINI, "YES")
+	info(autosaveFields, "VAL")
 }
 
 record(waveform, "$(P)$(Q)C$(CHAN):LOADFILE:NAME")
@@ -642,11 +645,27 @@ record(waveform, "$(P)$(Q)C$(CHAN):LOADFILE:NAME")
 	field(INP, "@asyn($(PORT),$(CHAN),0)LOADDATAFILENAME")
 	field(NELM, 512)
 	field(FTVL, "CHAR")
+	field(UDFS, "NO_ALARM")
+	field(SCAN, "I/O Intr")
 }
 
 record(bo, "$(P)$(Q)C$(CHAN):LOADFILE:SP")
 {
 	field(DESC, "Load File")
+	field(ZNAM, "0")
+	field(ONAM, "1")
     field(DTYP, "asynInt32")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)LOADDATAFILE")
+	field(UDFS, "NO_ALARM")
+}
+
+record(bi, "$(P)$(Q)C$(CHAN):LOADFILE:STAT")
+{
+	field(DESC, "Load File Status")
+	field(ZNAM, "Idle")
+	field(ONAM, "Loading")
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)LOADDATAFILESTATUS")
+	field(UDFS, "NO_ALARM")
+	field(SCAN, "I/O Intr")
 }

@@ -426,6 +426,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     createParam(P_eventSpec2DEnergyBinGroupString, asynParamInt32, &P_eventSpec2DEnergyBinGroup);
     createParam(P_eventSpec2DTBinWidthString, asynParamFloat64, &P_eventSpec2DTBinWidth);
     createParam(P_loadDataFileString, asynParamInt32, &P_loadDataFile);
+    createParam(P_loadDataFileStatusString, asynParamInt32, &P_loadDataFileStatus);
     createParam(P_loadDataFileNameString, asynParamOctet, &P_loadDataFileName);
     createParam(P_eventSpec2DTransModeString, asynParamInt32, &P_eventSpec2DTransMode);
 
@@ -460,6 +461,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
         status |= setIntegerParam(i, ADNumImagesCounter, 0);
         status |= setIntegerParam(i, P_eventSpec2DEnergyBinGroup, 64); // must be a valid value in Db
         status |= setIntegerParam(i, P_loadDataFile, 0);
+        status |= setIntegerParam(i, P_loadDataFileStatus, 0);
         status |= setIntegerParam(i, P_eventSpec2DTransMode, 0);
     }
 
@@ -1498,6 +1500,9 @@ bool CAENMCADriver::processListFile(int channel_id)
         if (load_data_file) {
             getStringParam(channel_id, P_loadDataFileName, filename);
             p_filename = filename;
+            std::cerr << "Loading data file \"" << p_filename << "\" ..." << std::endl;
+            setIntegerParam(channel_id, P_loadDataFileStatus, 1);
+            callParamCallbacks(channel_id);
             save_f = f;
             save_event_file_last_pos = m_event_file_last_pos[channel_id];
         } else {
@@ -1678,6 +1683,8 @@ bool CAENMCADriver::processListFile(int channel_id)
     }
     setDoubleParam(channel_id, P_eventsSpecMaxEventTime, m_max_event_time[channel_id]);
     if (load_data_file) {
+        std::cerr << "Data file loaded" << std::endl;
+        setIntegerParam(channel_id, P_loadDataFileStatus, 0);
 //        setADAcquire(channel_id, 0);
         m_event_file_last_pos[channel_id] = save_event_file_last_pos;
         f = save_f;
