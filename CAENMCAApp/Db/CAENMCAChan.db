@@ -160,6 +160,20 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:ENGBG")
 	field(SCAN, "I/O Intr")
 }
 
+record(mbbo, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TRANSMODE:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTRANSMODE")
+	field(PINI, "YES")
+	field(ZRST, "Linear")
+	field(ZRVL, "0")
+	field(ONST, "Sqrt")
+	field(ONVL, "1")
+	field(TWST, "Log")
+	field(TWVL, "2")
+	info(autosaveFields, "VAL")
+}
+
 record(bo, "$(P)$(Q)C$(CHAN):ENERGYSPEC:CLEAR:SP")
 {
     field(DTYP, "asynInt32")

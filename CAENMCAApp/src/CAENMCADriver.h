@@ -134,6 +134,7 @@ private:
     int P_eventSpec2DNTimeBins; // int
     int P_eventSpec2DTBinWidth; // double
     int P_eventSpec2DEnergyBinGroup; // int
+    int P_eventSpec2DTransMode; // int
 	int P_nFakeEvents; // int
 	int P_nImpDynamSatEvent; // int
 	int P_nPileupEvent; // int
@@ -257,5 +258,6 @@ private:
 #define P_eventSpec2DTBinWidthString      "EVENTSPEC2DTBINW"
 #define P_loadDataFileNameString          "LOADDATAFILENAME"
 #define P_loadDataFileString              "LOADDATAFILE"
+#define P_eventSpec2DTransModeString      "EVENTSPEC2DTRANSMODE"
 
 #endif /* CAENMCADRIVER_H */

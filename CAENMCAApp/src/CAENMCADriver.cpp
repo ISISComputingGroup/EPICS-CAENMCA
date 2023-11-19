@@ -427,6 +427,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     createParam(P_eventSpec2DTBinWidthString, asynParamFloat64, &P_eventSpec2DTBinWidth);
     createParam(P_loadDataFileString, asynParamInt32, &P_loadDataFile);
     createParam(P_loadDataFileNameString, asynParamOctet, &P_loadDataFileName);
+    createParam(P_eventSpec2DTransModeString, asynParamInt32, &P_eventSpec2DTransMode);
 
     NDDataType_t dataType = NDInt32; // data type for each frame
     int status = 0;
@@ -459,6 +460,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
         status |= setIntegerParam(i, ADNumImagesCounter, 0);
         status |= setIntegerParam(i, P_eventSpec2DEnergyBinGroup, 64); // must be a valid value in Db
         status |= setIntegerParam(i, P_loadDataFile, 0);
+        status |= setIntegerParam(i, P_eventSpec2DTransMode, 0);
     }
 
     if (status) {
@@ -2039,6 +2041,26 @@ int CAENMCADriver::computeImage(int addr, const std::vector<epicsType>& data, in
     return(status);
 }
 
+template <typename epicsType>
+static epicsType transFunc(epicsType value, int trans_mode)
+{
+    switch(trans_mode)
+    {
+        case 0:
+            return value;
+            break;
+        case 1:
+            return static_cast<epicsType>(sqrt(value));
+            break;
+        case 2:
+            return static_cast<epicsType>(log(1.0 + value));
+            break;
+        default:
+            return value;
+            break;
+    }
+}
+
 // supplied array of x,y,t
 template <typename epicsTypeOut, typename epicsTypeIn> 
 int CAENMCADriver::computeArray(int addr, const std::vector<epicsTypeIn>& data, int sizeX, int sizeY)
@@ -2047,11 +2069,13 @@ int CAENMCADriver::computeArray(int addr, const std::vector<epicsTypeIn>& data, 
     int columnStep=0, rowStep=0, colorMode;
     int status = asynSuccess;
     double exposureTime, gain;
-    int i, j, k;
+    int i, j, k, trans_mode = 0;
 
     status = getDoubleParam (ADGain,        &gain);
     status = getIntegerParam(NDColorMode,   &colorMode);
     status = getDoubleParam (ADAcquireTime, &exposureTime);
+    status = getIntegerParam(addr, P_eventSpec2DTransMode, &trans_mode);
+
 
     switch (colorMode) {
         case NDColorModeMono:
@@ -2086,7 +2110,7 @@ int CAENMCADriver::computeArray(int addr, const std::vector<epicsTypeIn>& data, 
 		switch (colorMode) {
 			case NDColorModeMono:
 				for (j=0; j<sizeX; j++) {
-					pMono[k] = static_cast<epicsTypeOut>(gain * data[k]);
+					pMono[k] = transFunc(static_cast<epicsTypeOut>(gain * data[k]), trans_mode);
                     ++k;
 				}
 				break;
@@ -2094,7 +2118,7 @@ int CAENMCADriver::computeArray(int addr, const std::vector<epicsTypeIn>& data, 
 			case NDColorModeRGB2:
 			case NDColorModeRGB3:
 				for (j=0; j<sizeX; j++) {
-					pRed[k] = pGreen[k] = pBlue[k] = static_cast<epicsTypeOut>(gain * data[k]);
+					pRed[k] = pGreen[k] = pBlue[k] = transFunc(static_cast<epicsTypeOut>(gain * data[k]), trans_mode);
 					pRed   += columnStep;
 					pGreen += columnStep;
 					pBlue  += columnStep;
