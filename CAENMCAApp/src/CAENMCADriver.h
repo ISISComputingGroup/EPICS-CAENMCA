@@ -46,7 +46,7 @@ private:
 	std::vector<epicsFloat64> m_event_spec_x[2];
 	std::vector<epicsFloat64> m_event_spec_y[2];
     std::vector<std::string> m_old_list_filename;
-    std::vector<FILE*> m_event_file_fd;
+    std::vector<std::tuple<FILE*,FILE*>> m_file_fd;
     std::vector<int64_t> m_event_file_last_pos;
     std::vector<uint64_t> m_frame_time; 
     std::vector<uint64_t> m_max_event_time; 
@@ -145,6 +145,7 @@ private:
     int P_loadDataFileName; // string
     int P_loadDataFile; // int
     int P_loadDataFileStatus; // int
+    int P_reloadLiveData; // int
   	int P_vmon; // double
 	int P_vset; // double
 	int P_imon; // double
@@ -260,6 +261,7 @@ private:
 #define P_loadDataFileNameString          "LOADDATAFILENAME"
 #define P_loadDataFileString              "LOADDATAFILE"
 #define P_loadDataFileStatusString        "LOADDATAFILESTATUS"
+#define P_reloadLiveDataString          "RELOADLIVEDATA"
 #define P_eventSpec2DTransModeString      "EVENTSPEC2DTRANSMODE"
 
 #endif /* CAENMCADRIVER_H */

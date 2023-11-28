@@ -20,6 +20,7 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#include <tuple>
 #include <map>
 #include <sys/stat.h>
 
@@ -347,7 +348,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 		1, /* Autoconnect */
 		0, /* Default priority */
 		0),	/* Default stack size*/
-	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_event_file_fd(2, NULL),
+	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_file_fd(2, {NULL,NULL}),
     m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL)
 {
 	const char *functionName = "CAENMCADriver";
@@ -429,6 +430,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     createParam(P_loadDataFileStatusString, asynParamInt32, &P_loadDataFileStatus);
     createParam(P_loadDataFileNameString, asynParamOctet, &P_loadDataFileName);
     createParam(P_eventSpec2DTransModeString, asynParamInt32, &P_eventSpec2DTransMode);
+    createParam(P_reloadLiveDataString, asynParamInt32, &P_reloadLiveData);
 
     NDDataType_t dataType = NDInt32; // data type for each frame
     int status = 0;
@@ -461,6 +463,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
         status |= setIntegerParam(i, ADNumImagesCounter, 0);
         status |= setIntegerParam(i, P_eventSpec2DEnergyBinGroup, 64); // must be a valid value in Db
         status |= setIntegerParam(i, P_loadDataFile, 0);
+        status |= setIntegerParam(i, P_reloadLiveData, 0);
         status |= setIntegerParam(i, P_loadDataFileStatus, 0);
         status |= setIntegerParam(i, P_eventSpec2DTransMode, 0);
     }
@@ -1401,11 +1404,12 @@ static std::string describeFlags(unsigned flags)
 bool CAENMCADriver::processListFile(int channel_id)
 {
     std::string filename, deviceName, ethPrefix = "eth://";
-    int enabled = 0, save_mode, load_data_file = 0;
+    int enabled = 0, save_mode, load_data_file = 0, reload_live_data = 0;
 	getStringParam(channel_id, P_listFile, filename);
 	getIntegerParam(channel_id, P_listEnabled, &enabled);
 	getIntegerParam(channel_id, P_listSaveMode, &save_mode);
     getIntegerParam(channel_id, P_loadDataFile, &load_data_file);
+    getIntegerParam(channel_id, P_reloadLiveData, &reload_live_data);
     double eventSpec2d_TMin = 0.0, eventSpec2d_TMax = 0.0;
     int eventSpec2d_nTBins = 0, eventSpec2d_engBinGroup = 1;
 	getStringParam(P_deviceName, deviceName);
@@ -1419,16 +1423,28 @@ bool CAENMCADriver::processListFile(int channel_id)
     const size_t EVENT_SIZE = 14;
     struct stat stat_struct;
     bool new_data = false;
+    std::string filename_ascii = filename;
+    for(int i=0; i<filename_ascii.size(); ++i) {
+        if (filename_ascii[i] == '/' || filename_ascii[i] == '\\' || filename_ascii[i] == '.') {
+            filename_ascii[i] = '_';
+        }            
+    }
+    filename_ascii = std::string("c:/Data/") + filename_ascii + ".txt";
     std::string prefix = "\\\\127.0.0.1\\storage\\";
     if (!deviceName.compare(0, ethPrefix.size(), ethPrefix)) {
         prefix = std::string("\\\\") + deviceName.substr(ethPrefix.size()) + "\\storage\\";
     }
-    FILE*& f = m_event_file_fd[channel_id];
+    FILE*& f = std::get<0>(m_file_fd[channel_id]);
+    FILE*& f_ascii = std::get<1>(m_file_fd[channel_id]);
     if ( (sizeof(trigger_time) + sizeof(energy) + sizeof(extras)) != EVENT_SIZE )
     {
         std::cerr << "size error" << std::endl;
         return new_data;
     }
+    if (reload_live_data != 0) {
+        setIntegerParam(channel_id, P_reloadLiveData, 0);
+        std::cerr << "ReLoading live data..." << std::endl;
+    }        
     if (load_data_file != 0) {
         setIntegerParam(channel_id, P_loadDataFile, 0);
         setADAcquire(channel_id, 1);
@@ -1439,6 +1455,11 @@ bool CAENMCADriver::processListFile(int channel_id)
         {
             fclose(f);
             f = NULL;
+        }
+        if (f_ascii != NULL)
+        {
+            fclose(f_ascii);
+            f_ascii = NULL;
         }
         return new_data;
     }
@@ -1474,7 +1495,7 @@ bool CAENMCADriver::processListFile(int channel_id)
         ev2d_tbinw = (eventSpec2d_TMax - eventSpec2d_TMin) / eventSpec2d_nTBins;
     }
     setDoubleParam(channel_id, P_eventSpec2DTBinWidth, ev2d_tbinw);
-    if (f == NULL || load_data_file || filename != m_old_list_filename[channel_id] ||
+    if (f == NULL || load_data_file || reload_live_data || filename != m_old_list_filename[channel_id] ||
         current_pos == -1 || current_pos != m_event_file_last_pos[channel_id])
     {
         new_data = true;
@@ -1510,10 +1531,20 @@ bool CAENMCADriver::processListFile(int channel_id)
         }
         std::replace(p_filename.begin(), p_filename.end(), '/', '\\'); 
         
-        if (f != NULL && !load_data_file)
+        if (!load_data_file)
         {
-            fclose(f);
-            f = NULL;
+            if (f != NULL) {
+                fclose(f);
+                f = NULL;
+            }
+            if (f_ascii != NULL) {
+                fclose(f_ascii);
+            }
+            std::cerr << "Opening " << filename_ascii << std::endl;
+            f_ascii = _fsopen(filename_ascii.c_str(), "wb", _SH_DENYWR);
+            if (f_ascii != NULL) {
+                fprintf(f_ascii, "TIMETAG\t\tENERGY\tFLAGS\t\n");
+            }
         }
         if (stat(p_filename.c_str(), &stat_struct) != 0 || stat_struct.st_size == 0)
         {
@@ -1583,6 +1614,9 @@ bool CAENMCADriver::processListFile(int channel_id)
         {
             std::cerr << "fread extras error" << std::endl;
             return new_data;
+        }
+        if (f_ascii != NULL) {
+            fprintf(f_ascii, "%llu\t%d\t0x%08x\t\n", trigger_time, energy, extras);
         }
         trigger_time /= 1000;  // convert from ps to ns
         force_trigger = false;
@@ -1688,6 +1722,12 @@ bool CAENMCADriver::processListFile(int channel_id)
 //        setADAcquire(channel_id, 0);
         m_event_file_last_pos[channel_id] = save_event_file_last_pos;
         f = save_f;
+    }
+    if (reload_live_data) {
+        std::cerr << "ReLoading live data complete" << std::endl;
+    }        
+    if (f_ascii != NULL) {
+        fflush(f_ascii);
     }
     return new_data;
 }

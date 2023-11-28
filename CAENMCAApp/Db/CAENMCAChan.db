@@ -669,3 +669,13 @@ record(bi, "$(P)$(Q)C$(CHAN):LOADFILE:STAT")
 	field(UDFS, "NO_ALARM")
 	field(SCAN, "I/O Intr")
 }
+
+record(bo, "$(P)$(Q)C$(CHAN):RELOADLIVE:SP")
+{
+	field(DESC, "ReLoad live data")
+	field(ZNAM, "0")
+	field(ONAM, "1")
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)RELOADLIVEDATA")
+	field(UDFS, "NO_ALARM")
+}

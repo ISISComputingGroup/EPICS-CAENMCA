@@ -100,6 +100,7 @@ record(bo, "$(P)$(Q)HV$(CHAN):POWER:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)HVON")
 	field(ZNAM, "Off")
 	field(ONAM, "On")
+	field(UDFS, "NO_ALARM")
 }
 
 record(bi, "$(P)$(Q)HV$(CHAN):POLARITY")
