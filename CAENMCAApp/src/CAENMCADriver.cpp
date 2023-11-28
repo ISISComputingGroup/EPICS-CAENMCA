@@ -1539,9 +1539,10 @@ bool CAENMCADriver::processListFile(int channel_id)
             }
             if (f_ascii != NULL) {
                 fclose(f_ascii);
+                f_ascii = NULL;
             }
-            std::cerr << "Opening " << filename_ascii << std::endl;
-            f_ascii = _fsopen(filename_ascii.c_str(), "wb", _SH_DENYWR);
+            //std::cerr << "Opening " << filename_ascii << std::endl;
+            //f_ascii = _fsopen(filename_ascii.c_str(), "wb", _SH_DENYWR);
             if (f_ascii != NULL) {
                 fprintf(f_ascii, "TIMETAG\t\tENERGY\tFLAGS\t\n");
             }
