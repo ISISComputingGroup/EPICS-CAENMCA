@@ -348,7 +348,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 		1, /* Autoconnect */
 		0, /* Default priority */
 		0),	/* Default stack size*/
-	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_file_fd(2, {NULL,NULL}),
+	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_file_fd(2, std::tuple<FILE*, FILE*>{NULL,NULL}),
     m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL)
 {
 	const char *functionName = "CAENMCADriver";
