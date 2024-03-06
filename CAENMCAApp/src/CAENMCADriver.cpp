@@ -427,7 +427,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     createParam(P_eventSpec2DEnergyBinGroupString, asynParamInt32, &P_eventSpec2DEnergyBinGroup);
     createParam(P_eventSpec2DTBinWidthString, asynParamFloat64, &P_eventSpec2DTBinWidth);
     createParam(P_loadDataFileString, asynParamInt32, &P_loadDataFile);
-    createParam(P_loadDataFileStatusString, asynParamInt32, &P_loadDataFileStatus);
+    createParam(P_loadDataStatusString, asynParamInt32, &P_loadDataStatus);
     createParam(P_loadDataFileNameString, asynParamOctet, &P_loadDataFileName);
     createParam(P_eventSpec2DTransModeString, asynParamInt32, &P_eventSpec2DTransMode);
     createParam(P_reloadLiveDataString, asynParamInt32, &P_reloadLiveData);
@@ -464,7 +464,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
         status |= setIntegerParam(i, P_eventSpec2DEnergyBinGroup, 64); // must be a valid value in Db
         status |= setIntegerParam(i, P_loadDataFile, 0);
         status |= setIntegerParam(i, P_reloadLiveData, 0);
-        status |= setIntegerParam(i, P_loadDataFileStatus, 0);
+        status |= setIntegerParam(i, P_loadDataStatus, 0);
         status |= setIntegerParam(i, P_eventSpec2DTransMode, 0);
     }
 
@@ -1031,6 +1031,8 @@ void CAENMCADriver::pollerTask()
 	while(true)
 	{
 	    lock();
+        
+        try {
 
         //std::cerr << "hv0 on " << isHVOn(m_hv_chan_h[0]) << std::endl;
         //std::cerr << "hv1 on " << isHVOn(m_hv_chan_h[1]) << std::endl;
@@ -1044,11 +1046,13 @@ void CAENMCADriver::pollerTask()
             getChannelInfo(i);
 		    getLists(i);
             new_data = processListFile(i);
+            setIntegerParam(i, P_loadDataStatus, 2);
 		    callParamCallbacks(i);
 			updateAD(i, new_data);
 		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
 		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
 		    doCallbacksInt32Array(m_energy_spec_event[i].data(), m_energy_spec_event[i].size(), P_energySpecEvent, i);
+            setIntegerParam(i, P_loadDataStatus, 0);
 		    callParamCallbacks(i);
 		}
         setIntegerParam(P_acqRunning, (isAcqRunning() ? 1 : 0));
@@ -1067,8 +1071,12 @@ void CAENMCADriver::pollerTask()
         setStringParam(P_availableConfigurations, configs.c_str());
 
 		callParamCallbacks(0);
+        }
+        catch(const std::exception& ex) {
+            std::cerr << "exception in pollerTask: " << ex.what() << std::endl;
+        }
 		unlock();
-		epicsThreadSleep(3.0);
+		epicsThreadSleep(1.0);
 	}
 }
 
@@ -1522,8 +1530,6 @@ bool CAENMCADriver::processListFile(int channel_id)
             getStringParam(channel_id, P_loadDataFileName, filename);
             p_filename = filename;
             std::cerr << "Loading data file \"" << p_filename << "\" ..." << std::endl;
-            setIntegerParam(channel_id, P_loadDataFileStatus, 1);
-            callParamCallbacks(channel_id);
             save_f = f;
             save_event_file_last_pos = m_event_file_last_pos[channel_id];
         } else {
@@ -1551,7 +1557,7 @@ bool CAENMCADriver::processListFile(int channel_id)
         {
             return new_data;
         }
-        if ( (f = _fsopen(p_filename.c_str(), "rb", _SH_DENYNO)) == NULL )
+        if ( (f = _fsopen(p_filename.c_str(), "rbS", _SH_DENYNO)) == NULL )
         {
             return new_data;
         }
@@ -1591,6 +1597,8 @@ bool CAENMCADriver::processListFile(int channel_id)
         return new_data;
     }
     new_data = true;
+    setIntegerParam(channel_id, P_loadDataStatus, 1);
+    callParamCallbacks(channel_id);
     for(int i=0; i<ev_nbins; ++i)
     {
         m_event_spec_x[channel_id][i] = ev_tmin + i * ev_binw;
@@ -1719,7 +1727,6 @@ bool CAENMCADriver::processListFile(int channel_id)
     setDoubleParam(channel_id, P_eventsSpecMaxEventTime, m_max_event_time[channel_id]);
     if (load_data_file) {
         std::cerr << "Data file loaded" << std::endl;
-        setIntegerParam(channel_id, P_loadDataFileStatus, 0);
 //        setADAcquire(channel_id, 0);
         m_event_file_last_pos[channel_id] = save_event_file_last_pos;
         f = save_f;
@@ -1730,6 +1737,7 @@ bool CAENMCADriver::processListFile(int channel_id)
     if (f_ascii != NULL) {
         fflush(f_ascii);
     }
+    // we do not reset P_loadDataStatus that is done by caller
     return new_data;
 }
 
@@ -1860,9 +1868,13 @@ void CAENMCADriver::updateAD(int addr, bool new_data)
 					callParamCallbacks(addr, addr);  
 				}
 			}
+			catch(const std::exception& ex)
+			{
+				std::cerr << "Exception in updateAD:" << ex.what() << std::endl;
+			}
 			catch(...)
 			{
-				std::cerr << "Exception in pollerThread4" << std::endl;
+				std::cerr << "Exception in updateAD" << std::endl;
 			}
 }
 

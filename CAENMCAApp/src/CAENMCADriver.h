@@ -144,7 +144,7 @@ private:
 	int P_nEventEnergyDiscard; // int
     int P_loadDataFileName; // string
     int P_loadDataFile; // int
-    int P_loadDataFileStatus; // int
+    int P_loadDataStatus; // int
     int P_reloadLiveData; // int
   	int P_vmon; // double
 	int P_vset; // double
@@ -260,7 +260,7 @@ private:
 #define P_eventSpec2DTBinWidthString      "EVENTSPEC2DTBINW"
 #define P_loadDataFileNameString          "LOADDATAFILENAME"
 #define P_loadDataFileString              "LOADDATAFILE"
-#define P_loadDataFileStatusString        "LOADDATAFILESTATUS"
+#define P_loadDataStatusString        "LOADDATASTATUS"
 #define P_reloadLiveDataString          "RELOADLIVEDATA"
 #define P_eventSpec2DTransModeString      "EVENTSPEC2DTRANSMODE"
 

@@ -659,13 +659,14 @@ record(bo, "$(P)$(Q)C$(CHAN):LOADFILE:SP")
 	field(UDFS, "NO_ALARM")
 }
 
-record(bi, "$(P)$(Q)C$(CHAN):LOADFILE:STAT")
+record(mbbi, "$(P)$(Q)C$(CHAN):LOADDATA:STAT")
 {
-	field(DESC, "Load File Status")
-	field(ZNAM, "Idle")
-	field(ONAM, "Loading")
+	field(DESC, "Load Data Status")
+	field(ZRST, "Idle")
+	field(ONST, "Loading")
+	field(TWST, "Processing")
     field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)LOADDATAFILESTATUS")
+	field(INP, "@asyn($(PORT),$(CHAN),0)LOADDATASTATUS")
 	field(UDFS, "NO_ALARM")
 	field(SCAN, "I/O Intr")
 }
