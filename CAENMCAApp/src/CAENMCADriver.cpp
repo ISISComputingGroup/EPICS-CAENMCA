@@ -350,7 +350,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 		0, /* Default priority */
 		0),	/* Default stack size*/
 	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_file_fd(2, std::tuple<FILE*, FILE*>{NULL,NULL}),
-    m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL),m_start_time(epicsTime::getCurrent())
+    m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL),m_start_time(epicsTime::getCurrent()),m_stop_time(epicsTime::getCurrent()), m_name(portName)
 {
 	const char *functionName = "CAENMCADriver";
 
@@ -477,7 +477,9 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
         status |= setIntegerParam(i, P_loadDataFile, 0);
         status |= setIntegerParam(i, P_reloadLiveData, 0);
         status |= setIntegerParam(i, P_loadDataStatus, 0);
-        status |= setIntegerParam(i, P_eventSpec2DTransMode, 0);
+        status |= setDoubleParam(i, P_eventSpecRateTMin, 0.0);
+        status |= setDoubleParam(i, P_eventSpecRateTMax, 0.0);
+        status |= setDoubleParam(i, P_eventSpecRate, 0.0);
     }
 
     if (status) {
@@ -527,17 +529,17 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 void CAENMCADriver::setFileNames()
 {
     std::string filePrefix;
-    char filename[64], runNumber[16];
+    char filename[256], runNumber[16];
     int iRunNumber = 0;
     getStringParam(P_filePrefix, filePrefix);
     getIntegerParam(P_iRunNumber, &iRunNumber);
     epicsSnprintf(runNumber, sizeof(runNumber), "%08d", iRunNumber);
     setStringParam(P_runNumber, runNumber);
     for(int i=0; i<2; ++i) {
-        epicsSnprintf(filename, sizeof(filename), "%s%s_%d.dat", filePrefix.c_str(), runNumber, i);
+        epicsSnprintf(filename, sizeof(filename), "ibex/%s%s_%s_ch%d.bin", filePrefix.c_str(), runNumber, m_name.c_str(), i);
         setStringParam(i, P_listFile, filename);
         setListModeFilename(i, filename);
-        epicsSnprintf(filename, sizeof(filename), "%s%s_%d_spec.dat", filePrefix.c_str(), runNumber, i);
+        epicsSnprintf(filename, sizeof(filename), "ibex/%s%s_%s_spectrum_ch%02d.spe", filePrefix.c_str(), runNumber, m_name.c_str(), i);
         setStringParam(i, P_energySpecFilename, filename);
         setEnergySpectrumFilename(i, 0, filename);
     }
@@ -555,20 +557,20 @@ void CAENMCADriver::incrementRunNumber()
 void CAENMCADriver::endRun()
 {
     std::string filePrefix, title, comment, runNumber, startTime;
-    char filename[64];
+    char filename[256];
     getStringParam(P_filePrefix, filePrefix);
     getStringParam(P_runTitle, title);
     getStringParam(P_runComment, comment);
     getStringParam(P_runNumber, runNumber);
     getStringParam(P_startTime, startTime);
-    epicsSnprintf(filename, sizeof(filename), "%s%s_info.txt", filePrefix.c_str(), runNumber.c_str());
+    epicsSnprintf(filename, sizeof(filename), "%s%s_%s_info.txt", filePrefix.c_str(), runNumber.c_str(), m_name.c_str());
     std::fstream f;
     f.open(filename, std::ios::out | std::ios::trunc);
     f << "Title: " << title << std::endl;
     f << "Comment: " << comment << std::endl;
     f.close();    
     f.open("journal.txt", std::ios::out | std::ios::app);
-    f << filePrefix << runNumber << " " << startTime << " " << title << std::endl;
+    f << filePrefix << runNumber << " " << m_name << " " << startTime << " " << title << std::endl;
     f.close();    
     incrementRunNumber();
 }
@@ -808,6 +810,8 @@ void CAENMCADriver::controlAcquisition(int chan_mask, bool start)
         if (start) {
             setFileNames();
             setStartTime();
+        } else {
+            m_stop_time = epicsTime::getCurrent();
         }
 		if (chan_mask == 0x3) // both channels
 		{
@@ -840,6 +844,8 @@ void CAENMCADriver::controlAcquisition(int chan_mask, bool start)
             setFileNames();
             setStartTime();
             clearEnergySpectrum(0);
+        } else {
+            m_stop_time = epicsTime::getCurrent();
         }
 		CAENMCA::SendCommand(m_device_h, cmdtype, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
         setADAcquire(0, (start ? 1 : 0));
@@ -1130,7 +1136,8 @@ void CAENMCADriver::pollerTask()
             setIntegerParam(i, P_loadDataStatus, 0);
 		    callParamCallbacks(i);
 		}
-        setIntegerParam(P_acqRunning, (isAcqRunning() ? 1 : 0));
+        bool acqRunning = isAcqRunning();
+        setIntegerParam(P_acqRunning, (acqRunning ? 1 : 0));
 		std::vector<std::string> configs_v;
         listConfigurations(configs_v);
         std::string configs;
@@ -1145,7 +1152,12 @@ void CAENMCADriver::pollerTask()
         }        
         setStringParam(P_availableConfigurations, configs.c_str());
 
-        double run_dur = epicsTime::getCurrent() - m_start_time;
+        double run_dur;
+        if (acqRunning) {
+            run_dur = epicsTime::getCurrent() - m_start_time;
+        } else {
+            run_dur = m_stop_time - m_start_time;
+        }
         setIntegerParam(P_runDuration, (run_dur > 0.0 ? (epicsInt32)run_dur : 0));
         
 		callParamCallbacks(0);
@@ -1191,7 +1203,7 @@ asynStatus CAENMCADriver::writeOctet(asynUser *pasynUser, const char *value, siz
 	    }
 	    else if (function == P_filePrefix)
 	    {
-          setStringParam(addr, P_filePrefix, value_s.c_str());
+          setStringParam(P_filePrefix, value_s.c_str());
           setFileNames();
 	    }
 	    else if (function == P_configuration)
@@ -1353,7 +1365,7 @@ asynStatus CAENMCADriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
         }
 		else if (function == P_iRunNumber)
         {
-            setIntegerParam(addr, P_iRunNumber, value);
+            setIntegerParam(P_iRunNumber, value);
             setFileNames();
         }
 		else if (function == P_restart)
@@ -1822,6 +1834,8 @@ bool CAENMCADriver::processListFile(int channel_id)
     incrIntParam(channel_id, P_nEventNotBinned, neventnotbinned);
     if (frame > 0) {
         setDoubleParam(channel_id, P_eventSpecRate, (double)nevents_real_cr / (double)frame);
+    } else {
+        setDoubleParam(channel_id, P_eventSpecRate, 0.0);
     }
     if (frame_length > 0) {
         setDoubleParam(channel_id, P_eventsSpecTriggerRate, 1.0e9 / (double)frame_length); // frame length units is nano seconds

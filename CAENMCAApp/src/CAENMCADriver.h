@@ -39,6 +39,7 @@ private:
         int computeArray(int addr, const std::vector<epicsTypeIn>& data, int maxSizeX, int maxSizeY);
     CAEN_MCA_HANDLE m_device_h;
     epicsTime m_start_time;
+    epicsTime m_stop_time;
     std::vector<CAEN_MCA_HANDLE> m_chan_h;
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
 	std::vector<epicsInt32> m_energy_spec[2];
@@ -54,6 +55,7 @@ private:
 	CAEN_MCA_BoardFamilyCode_t m_famcode;
     uint32_t m_nbitsEnergy;
     uint32_t m_tsample; // picoseconds
+    std::string m_name;
 
 	double getParameterValue(CAEN_MCA_HANDLE handle, const char *name);
 	void setParameterValue(CAEN_MCA_HANDLE handle, const char *name, double value);

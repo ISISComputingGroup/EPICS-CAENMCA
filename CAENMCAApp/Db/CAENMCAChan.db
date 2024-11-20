@@ -540,7 +540,7 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE")
 {
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATE")
-	field(EGU, "evnt / trig")
+	field(EGU, "evnt/trg")
 	field(PREC, 1)
 	field(SCAN, "I/O Intr")
 }
