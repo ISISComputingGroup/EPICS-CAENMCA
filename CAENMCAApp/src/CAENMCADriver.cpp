@@ -1042,9 +1042,9 @@ void CAENMCADriver::getEnergySpectrum(int32_t channel_id, int32_t spectrum_id, s
 	setIntegerParam(channel_id, P_energySpecCounts, nentries);
     setIntegerParam(channel_id, P_energySpecNBins, nbins);
     setStringParam(channel_id, P_energySpecFilename, filename);    
-    setDoubleParam(channel_id, P_energySpecRealtime, realtime);
-	setDoubleParam(channel_id, P_energySpeclivetime, livetime);
-	setDoubleParam(channel_id, P_energySpecdeadtime, deadtime);
+    setDoubleParam(channel_id, P_energySpecRealtime, realtime * 1.0e-9);
+	setDoubleParam(channel_id, P_energySpeclivetime, livetime * 1.0e-9);
+	setDoubleParam(channel_id, P_energySpecdeadtime, deadtime * 1.0e-9);
 	setIntegerParam(channel_id, P_energySpecOverflows, overflows);
     setIntegerParam(channel_id, P_energySpecUnderflows, underflows);
     setDoubleParam(channel_id, P_energySpecAutosave, autosaveperiod / 1000.0);
