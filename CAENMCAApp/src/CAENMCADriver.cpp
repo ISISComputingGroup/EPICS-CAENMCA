@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <string>
 #include <algorithm>
 #include <tuple>
@@ -349,7 +350,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 		0, /* Default priority */
 		0),	/* Default stack size*/
 	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_file_fd(2, std::tuple<FILE*, FILE*>{NULL,NULL}),
-    m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL)
+    m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL),m_start_time(epicsTime::getCurrent()),m_stop_time(epicsTime::getCurrent()), m_name(portName)
 {
 	const char *functionName = "CAENMCADriver";
 
@@ -431,6 +432,17 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     createParam(P_loadDataFileNameString, asynParamOctet, &P_loadDataFileName);
     createParam(P_eventSpec2DTransModeString, asynParamInt32, &P_eventSpec2DTransMode);
     createParam(P_reloadLiveDataString, asynParamInt32, &P_reloadLiveData);
+    createParam(P_runNumberString, asynParamOctet,  &P_runNumber);
+    createParam(P_iRunNumberString,  asynParamInt32, &P_iRunNumber);
+    createParam(P_filePrefixString, asynParamOctet,  &P_filePrefix);
+    createParam(P_runTitleString, asynParamOctet,  &P_runTitle);
+    createParam(P_runCommentString, asynParamOctet,  &P_runComment);
+    createParam(P_startTimeString, asynParamOctet,  &P_startTime);
+    createParam(P_runDurationString,  asynParamInt32, &P_runDuration);
+    createParam(P_endRunString, asynParamInt32,  &P_endRun);
+    createParam(P_eventSpecRateTMinString, asynParamFloat64,  &P_eventSpecRateTMin);
+    createParam(P_eventSpecRateTMaxString, asynParamFloat64,  &P_eventSpecRateTMax);
+    createParam(P_eventSpecRateString, asynParamFloat64,  &P_eventSpecRate);
 
     NDDataType_t dataType = NDInt32; // data type for each frame
     int status = 0;
@@ -465,7 +477,9 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
         status |= setIntegerParam(i, P_loadDataFile, 0);
         status |= setIntegerParam(i, P_reloadLiveData, 0);
         status |= setIntegerParam(i, P_loadDataStatus, 0);
-        status |= setIntegerParam(i, P_eventSpec2DTransMode, 0);
+        status |= setDoubleParam(i, P_eventSpecRateTMin, 0.0);
+        status |= setDoubleParam(i, P_eventSpecRateTMax, 0.0);
+        status |= setDoubleParam(i, P_eventSpecRate, 0.0);
     }
 
     if (status) {
@@ -510,6 +524,55 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 		printf("%s:%s: epicsThreadCreate failure\n", driverName, functionName);
 		return;
 	}
+}
+
+void CAENMCADriver::setFileNames()
+{
+    std::string filePrefix;
+    char filename[256], runNumber[16];
+    int iRunNumber = 0;
+    getStringParam(P_filePrefix, filePrefix);
+    getIntegerParam(P_iRunNumber, &iRunNumber);
+    epicsSnprintf(runNumber, sizeof(runNumber), "%08d", iRunNumber);
+    setStringParam(P_runNumber, runNumber);
+    for(int i=0; i<2; ++i) {
+        epicsSnprintf(filename, sizeof(filename), "ibex/%s%s_%s_ch%d.bin", filePrefix.c_str(), runNumber, m_name.c_str(), i);
+        setStringParam(i, P_listFile, filename);
+        setListModeFilename(i, filename);
+        epicsSnprintf(filename, sizeof(filename), "ibex/%s%s_%s_spectrum_ch%02d.spe", filePrefix.c_str(), runNumber, m_name.c_str(), i);
+        setStringParam(i, P_energySpecFilename, filename);
+        setEnergySpectrumFilename(i, 0, filename);
+    }
+}
+
+void CAENMCADriver::incrementRunNumber()
+{
+    int iRunNumber = 0;
+    getIntegerParam(P_iRunNumber, &iRunNumber);
+    ++iRunNumber;
+    setIntegerParam(P_iRunNumber, iRunNumber);
+    setFileNames();    
+}
+
+void CAENMCADriver::endRun()
+{
+    std::string filePrefix, title, comment, runNumber, startTime;
+    char filename[256];
+    getStringParam(P_filePrefix, filePrefix);
+    getStringParam(P_runTitle, title);
+    getStringParam(P_runComment, comment);
+    getStringParam(P_runNumber, runNumber);
+    getStringParam(P_startTime, startTime);
+    epicsSnprintf(filename, sizeof(filename), "%s%s_%s_info.txt", filePrefix.c_str(), runNumber.c_str(), m_name.c_str());
+    std::fstream f;
+    f.open(filename, std::ios::out | std::ios::trunc);
+    f << "Title: " << title << std::endl;
+    f << "Comment: " << comment << std::endl;
+    f.close();    
+    f.open("journal.txt", std::ios::out | std::ios::app);
+    f << filePrefix << runNumber << " " << m_name << " " << startTime << " " << title << std::endl;
+    f.close();    
+    incrementRunNumber();
 }
 
 void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE handle, const char *name)
@@ -730,12 +793,26 @@ void CAENMCADriver::clearEnergySpectrum(int channel_id)
                          DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
 }
 
+void CAENMCADriver::setStartTime()
+{
+    m_start_time = epicsTime::getCurrent();
+    char buf[30];
+    m_start_time.strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S");
+    setStringParam(P_startTime, buf);
+}
+
 void CAENMCADriver::controlAcquisition(int chan_mask, bool start)
 {
     CAEN_MCA_CommandType_t cmdtype = (start ? CAEN_MCA_CMD_ACQ_START : CAEN_MCA_CMD_ACQ_STOP);
 
 	if (m_famcode == CAEN_MCA_FAMILY_CODE_XXHEX)
 	{
+        if (start) {
+            setFileNames();
+            setStartTime();
+        } else {
+            m_stop_time = epicsTime::getCurrent();
+        }
 		if (chan_mask == 0x3) // both channels
 		{
             if (start) {
@@ -764,7 +841,11 @@ void CAENMCADriver::controlAcquisition(int chan_mask, bool start)
 	else
 	{
         if (start) {
+            setFileNames();
+            setStartTime();
             clearEnergySpectrum(0);
+        } else {
+            m_stop_time = epicsTime::getCurrent();
         }
 		CAENMCA::SendCommand(m_device_h, cmdtype, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
         setADAcquire(0, (start ? 1 : 0));
@@ -1055,7 +1136,8 @@ void CAENMCADriver::pollerTask()
             setIntegerParam(i, P_loadDataStatus, 0);
 		    callParamCallbacks(i);
 		}
-        setIntegerParam(P_acqRunning, (isAcqRunning() ? 1 : 0));
+        bool acqRunning = isAcqRunning();
+        setIntegerParam(P_acqRunning, (acqRunning ? 1 : 0));
 		std::vector<std::string> configs_v;
         listConfigurations(configs_v);
         std::string configs;
@@ -1070,6 +1152,14 @@ void CAENMCADriver::pollerTask()
         }        
         setStringParam(P_availableConfigurations, configs.c_str());
 
+        double run_dur;
+        if (acqRunning) {
+            run_dur = epicsTime::getCurrent() - m_start_time;
+        } else {
+            run_dur = m_stop_time - m_start_time;
+        }
+        setIntegerParam(P_runDuration, (run_dur > 0.0 ? (epicsInt32)run_dur : 0));
+        
 		callParamCallbacks(0);
         }
         catch(const std::exception& ex) {
@@ -1110,6 +1200,11 @@ asynStatus CAENMCADriver::writeOctet(asynUser *pasynUser, const char *value, siz
 	    if (function == P_listFile)
 	    {		
             setListModeFilename(addr, value_s.c_str());
+	    }
+	    else if (function == P_filePrefix)
+	    {
+          setStringParam(P_filePrefix, value_s.c_str());
+          setFileNames();
 	    }
 	    else if (function == P_configuration)
 	    {
@@ -1263,6 +1358,15 @@ asynStatus CAENMCADriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 		else if (function == P_energySpecClear)
         {
             clearEnergySpectrum(addr);
+        }
+		else if (function == P_endRun)
+        {
+            endRun();
+        }
+		else if (function == P_iRunNumber)
+        {
+            setIntegerParam(P_iRunNumber, value);
+            setFileNames();
         }
 		else if (function == P_restart)
         {
@@ -1425,6 +1529,10 @@ bool CAENMCADriver::processListFile(int channel_id)
 	getDoubleParam(channel_id, P_eventSpec2DTimeMin, &eventSpec2d_TMin);
 	getIntegerParam(channel_id, P_eventSpec2DNTimeBins, &eventSpec2d_nTBins);
 	getIntegerParam(channel_id, P_eventSpec2DEnergyBinGroup, &eventSpec2d_engBinGroup);
+    double eventSpecRateTMin, eventSpecRateTMax;
+	getDoubleParam(channel_id, P_eventSpecRateTMin, &eventSpecRateTMin);
+	getDoubleParam(channel_id, P_eventSpecRateTMax, &eventSpecRateTMax);
+
     uint64_t trigger_time = 0, frame_length = 0, max_event_time = 0;
     int16_t energy;
     uint32_t extras;
@@ -1477,7 +1585,7 @@ bool CAENMCADriver::processListFile(int channel_id)
 	{
 		current_pos = _ftelli64(f);
 	}
-    int nevents_real_ev = 0, ev_nbins = 0, nevents_real_es = 0;
+    int nevents_real_ev = 0, ev_nbins = 0, nevents_real_es = 0, nevents_real_cr = 0;
     int ntimerollover = 0, ntimereset = 0, neventenergysat = 0;
     int nfakeevent = 0, nimpdynamsatevent = 0, npileupevent = 0;
     int neventenergyoutsca = 0, neventdursatinhibit = 0;
@@ -1696,6 +1804,11 @@ bool CAENMCADriver::processListFile(int channel_id)
                     ++nevents_real_es;
                     ++(m_energy_spec_event[channel_id][energy]);
                 }
+                if ((eventSpecRateTMin >= eventSpecRateTMax) ||
+                    (tdiff >= eventSpecRateTMin && tdiff <= eventSpecRateTMax))
+                {
+                    ++nevents_real_cr;
+                }
             } else {
                 ++neventenergydiscard;
             }
@@ -1719,6 +1832,11 @@ bool CAENMCADriver::processListFile(int channel_id)
     incrIntParam(channel_id, P_nImpDynamSatEvent, nimpdynamsatevent);
     incrIntParam(channel_id, P_nEventEnergyDiscard, neventenergydiscard);
     incrIntParam(channel_id, P_nEventNotBinned, neventnotbinned);
+    if (frame > 0) {
+        setDoubleParam(channel_id, P_eventSpecRate, (double)nevents_real_cr / (double)frame);
+    } else {
+        setDoubleParam(channel_id, P_eventSpecRate, 0.0);
+    }
     if (frame_length > 0) {
         setDoubleParam(channel_id, P_eventsSpecTriggerRate, 1.0e9 / (double)frame_length); // frame length units is nano seconds
     } else {

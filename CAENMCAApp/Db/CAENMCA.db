@@ -1,3 +1,161 @@
+record(waveform, "$(P)$(Q)TITLE")
+{
+    field(DESC, "Run title")
+    field(NELM, "256")
+    field(FTVL, "CHAR")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)RUNTITLE")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
+record(waveform, "$(P)$(Q)TITLE:SP")
+{
+    field(DESC, "Set Run title")
+    field(NELM, "256")
+    field(FTVL, "CHAR")
+    field(DTYP, "asynOctetWrite")
+    field(INP,  "@asyn($(PORT),0,0)RUNTITLE")
+    field(PINI, "YES")
+    info(autosaveFields, "VAL")
+}
+
+record(waveform, "$(P)$(Q)COMMENT")
+{
+    field(DESC, "Run comment")
+    field(NELM, "512")
+    field(FTVL, "CHAR")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)RUNCOMMENT")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
+record(waveform, "$(P)$(Q)COMMENT:SP")
+{
+    field(DESC, "Set Run comment")
+    field(NELM, "256")
+    field(FTVL, "CHAR")
+    field(DTYP, "asynOctetWrite")
+    field(INP,  "@asyn($(PORT),0,0)RUNCOMMENT")
+    field(PINI, "YES")
+    info(autosaveFields, "VAL")
+}
+
+record(stringin, "$(P)$(Q)RUNNUMBER")
+{
+    field(DESC, "Run Number")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)RUNNUMBER")
+    field(VAL, "0")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
+record(longin, "$(P)$(Q)IRUNNUMBER")
+{
+    field(DESC, "Run Number")
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),0,0)IRUNNUMBER")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "MEDIUM")
+	info(archive, "VAL")
+	field(EGU, "")
+}
+
+# save last run number
+record(longout, "$(P)$(Q)_IRUNNUMBER")
+{
+    field(DESC, "Run Number")
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),0,0)IRUNNUMBER")
+	field(EGU, "")
+    field(PINI, "YES")
+    info(autosaveFields, "VAL")
+    info(asyn:READBACK, "1")
+}
+
+record(stringin, "$(P)$(Q)FILEPREFIX")
+{
+    field(DESC, "File Prefix")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)FILEPREFIX")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(autosaveFields, "VAL")
+}
+
+record(stringout, "$(P)$(Q)FILEPREFIX:SP")
+{
+    field(DESC, "File Prefix")
+    field(DTYP, "asynOctetWrite")
+    field(OUT,  "@asyn($(PORT),0,0)FILEPREFIX")
+    field(PINI, "YES")
+    info(INTEREST, "HIGH")
+    info(autosaveFields, "VAL")
+}
+
+record(stringin, "$(P)$(Q)STARTTIME")
+{
+    field(DESC, "Run Start Time")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)STARTTIME")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
+record(longin, "$(P)$(Q)RUNDURATION")
+{
+    field(DESC, "Run Duration")
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),0,0)RUNDURATION")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+	field(EGU, "s")
+    info(archive, "-30.0 VAL")
+}
+
+record(bo, "$(P)$(Q)BEGINRUN:SP")
+{
+    field(DESC, "Begin a Run")
+    field(ZNAM, "0")
+    field(ONAM, "1")
+    #Set the initial alarm state
+    field(UDFS, "NO_ALARM")
+    field(FLNK, "$(P)$(Q)START:SP.PROC")
+}
+
+record(bo, "$(P)$(Q)ABORTRUN:SP")
+{
+    field(DESC, "Abort a Run")
+    field(ZNAM, "0")
+    field(ONAM, "1")
+    #Set the initial alarm state
+    field(UDFS, "NO_ALARM")
+    field(FLNK, "$(P)$(Q)STOP:SP.PROC")
+}
+
+record(bo, "$(P)$(Q)ENDRUN:SP")
+{
+    field(DESC, "End a Run")
+    field(ZNAM, "0")
+    field(ONAM, "1")
+    #Set the initial alarm state
+    field(UDFS, "NO_ALARM")
+    field(OUT, "$(P)$(Q)STOP:SP.PROC PP")
+    field(FLNK, "$(P)$(Q)_ENDRUN.PROC")
+}
+
+record(bo, "$(P)$(Q)_ENDRUN")
+{
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),0,0)ENDRUN")
+}
+
 # if an individual channel calls ACQSTART / ACQSTOP it
 # will pass 0 or 1 from the bo record. Here we pass 3
 # as the mask which means both channels and will always
