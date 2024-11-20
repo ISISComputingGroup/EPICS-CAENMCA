@@ -561,13 +561,13 @@ void CAENMCADriver::endRun()
     getStringParam(P_runComment, comment);
     getStringParam(P_runNumber, runNumber);
     getStringParam(P_startTime, startTime);
-    epicsSnprintf(filename, sizeof(filename), "%s%s_info.txt", filePrefix.c_str(), runNumber);
+    epicsSnprintf(filename, sizeof(filename), "%s%s_info.txt", filePrefix.c_str(), runNumber.c_str());
     std::fstream f;
-    f.open(filename, std::ios::out);
+    f.open(filename, std::ios::out | std::ios::trunc);
     f << "Title: " << title << std::endl;
     f << "Comment: " << comment << std::endl;
     f.close();    
-    f.open("journal.txt", std::ios::app);
+    f.open("journal.txt", std::ios::out | std::ios::app);
     f << filePrefix << runNumber << " " << startTime << " " << title << std::endl;
     f.close();    
     incrementRunNumber();
