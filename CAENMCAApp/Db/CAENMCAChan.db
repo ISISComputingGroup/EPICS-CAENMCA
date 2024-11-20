@@ -214,12 +214,6 @@ record(stringin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE")
 	field(SCAN, "I/O Intr")
 }
 
-record(stringout, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE:SP")
-{
-    field(DTYP, "asynOctetWrite")
-	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECFILENAME")
-}
-
 record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:REALTIME")
 {
     field(DTYP, "asynFloat64")
@@ -319,15 +313,6 @@ record(bi, "$(P)$(Q)C$(CHAN):POLARITY")
 	field(ZNAM, "Positive")
 	field(ONAM, "Negative")
 	field(SCAN, "I/O Intr")
-}
-
-record(waveform, "$(P)$(Q)C$(CHAN):LISTFILE:SP")
-{
-	field(DESC, "List File Name")
-    field(DTYP, "asynOctetWrite")
-	field(INP, "@asyn($(PORT),$(CHAN),0)LISTFILE")
-	field(NELM, 512)
-	field(FTVL, "CHAR")
 }
 
 record(waveform, "$(P)$(Q)C$(CHAN):LISTFILE")
@@ -511,6 +496,54 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:TBINW")
 	field(PREC, 1)
 }
 
+record(ao, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:TMIN:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATETMIN")
+	field(PINI, "YES")
+	field(EGU, "ns")
+	field(VAL, "0")
+	field(PREC, 1)
+	info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:TMIN")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATETMIN")
+	field(EGU, "ns")
+	field(PREC, 1)
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:TMAX:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATETMAX")
+	field(PINI, "YES")
+	field(EGU, "ns")
+	field(VAL, "20000000")
+	field(PREC, 1)
+	info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:TMAX")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATETMAX")
+	field(EGU, "ns")
+	field(PREC, 1)
+	field(SCAN, "I/O Intr")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATE")
+	field(EGU, "evnt / trig")
+	field(PREC, 1)
+	field(SCAN, "I/O Intr")
+}
 
 record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTRIG")
 {

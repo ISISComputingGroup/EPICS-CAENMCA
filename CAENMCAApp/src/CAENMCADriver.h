@@ -38,6 +38,7 @@ private:
     template <typename epicsTypeOut, typename epicsTypeIn> 
         int computeArray(int addr, const std::vector<epicsTypeIn>& data, int maxSizeX, int maxSizeY);
     CAEN_MCA_HANDLE m_device_h;
+    epicsTime m_start_time;
     std::vector<CAEN_MCA_HANDLE> m_chan_h;
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
 	std::vector<epicsInt32> m_energy_spec[2];
@@ -92,6 +93,10 @@ private:
     void setListModeEnable(int32_t channel_id,  bool enable);
     bool processListFile(int channel_id);
     void incrIntParam(int channel_id, int param, int incr);
+    void setFileNames();
+    void incrementRunNumber();
+    void endRun();
+    void setStartTime();
 
 #define FIRST_CAEN_PARAM P_deviceName
 
@@ -146,6 +151,17 @@ private:
     int P_loadDataFile; // int
     int P_loadDataStatus; // int
     int P_reloadLiveData; // int
+    int P_runNumber; // string
+    int P_iRunNumber; // int
+    int P_filePrefix; // string
+    int P_runTitle; // string
+    int P_runComment; // string
+    int P_startTime; // string
+    int P_runDuration; // int
+    int P_endRun; // int
+    int P_eventSpecRateTMin; // float
+    int P_eventSpecRateTMax; // float
+    int P_eventSpecRate; // float    
   	int P_vmon; // double
 	int P_vset; // double
 	int P_imon; // double
@@ -263,5 +279,17 @@ private:
 #define P_loadDataStatusString        "LOADDATASTATUS"
 #define P_reloadLiveDataString          "RELOADLIVEDATA"
 #define P_eventSpec2DTransModeString      "EVENTSPEC2DTRANSMODE"
+#define P_runTitleString "RUNTITLE"
+#define P_runCommentString "RUNCOMMENT"
+#define P_runNumberString "RUNNUMBER"
+#define P_iRunNumberString "IRUNNUMBER"
+#define P_filePrefixString "FILEPREFIX"
+#define P_startTimeString "STARTTIME"
+#define P_runDurationString "RUNDURATION"
+#define P_endRunString "ENDRUN"
+#define P_eventSpecRateTMinString "EVENTSPECRATETMIN"
+#define P_eventSpecRateTMaxString "EVENTSPECRATETMAX"
+#define P_eventSpecRateString "EVENTSPECRATE"
 
 #endif /* CAENMCADRIVER_H */
+
