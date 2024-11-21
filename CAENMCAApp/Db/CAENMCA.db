@@ -129,6 +129,20 @@ record(bo, "$(P)$(Q)BEGINRUN:SP")
     field(FLNK, "$(P)$(Q)START:SP.PROC")
 }
 
+record(event, "$(P)$(Q)BEGINALL:SP")
+{
+    field(DESC, "Begin a Run")
+    field(VAL, "BeginRun")
+}
+
+record(bo, "$(P)$(Q)BEGINALL")
+{
+    field(SCAN, "Event")
+    field(EVNT, "BeginRun")
+    field(DESC, "Begin a Run")
+    field(FLNK, "$(P)$(Q)BEGINRUN:SP.PROC")
+}
+
 record(bo, "$(P)$(Q)ABORTRUN:SP")
 {
     field(DESC, "Abort a Run")
@@ -137,6 +151,20 @@ record(bo, "$(P)$(Q)ABORTRUN:SP")
     #Set the initial alarm state
     field(UDFS, "NO_ALARM")
     field(FLNK, "$(P)$(Q)STOP:SP.PROC")
+}
+
+record(event, "$(P)$(Q)ABORTALL:SP")
+{
+    field(DESC, "Abort a Run")
+    field(VAL, "AbortRun")
+}
+
+record(bo, "$(P)$(Q)ABORTALL")
+{
+    field(SCAN, "Event")
+    field(EVNT, "AbortRun")
+    field(DESC, "Abort a Run")
+    field(FLNK, "$(P)$(Q)ABORTRUN:SP.PROC")
 }
 
 record(bo, "$(P)$(Q)ENDRUN:SP")
@@ -154,6 +182,20 @@ record(bo, "$(P)$(Q)_ENDRUN")
 {
     field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT),0,0)ENDRUN")
+}
+
+record(event, "$(P)$(Q)ENDALL:SP")
+{
+    field(DESC, "End a Run")
+    field(VAL, "EndRun")
+}
+
+record(bo, "$(P)$(Q)ABORALL")
+{
+    field(SCAN, "Event")
+    field(EVNT, "EndRun")
+    field(DESC, "End a Run")
+    field(FLNK, "$(P)$(Q)ENDRUN:SP.PROC")
 }
 
 # if an individual channel calls ACQSTART / ACQSTOP it

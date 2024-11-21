@@ -6,7 +6,40 @@ record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC")
 	field(FTVL, "LONG")
 	field(SCAN, "I/O Intr")
 }
-	
+
+# energy scaled bins
+record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC:X")
+{
+	field(NELM, 32768)
+	field(FTVL, "DOUBLE")
+}
+
+# A * bin_number + B
+record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:SCALE:A")
+{
+    field(VAL, "1")
+	field(PINI, "YES")
+    field(PREC, 2)
+	info(autosaveFields, "VAL")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:SCALE:B")
+{
+    field(VAL, "0")
+	field(PINI, "YES")
+    field(PREC, 2)
+	info(autosaveFields, "VAL")
+}
+
+record(acalcout, "$(P)$(Q)C$(CHAN):ENERGYSPEC:X:CALC")
+{
+	field(NELM, 32768)
+    field(INPA, "$(P)$(Q)C$(CHAN):ENERGYSPEC:SCALE:A CP")
+    field(INPB, "$(P)$(Q)C$(CHAN):ENERGYSPEC:SCALE:B CP")
+	field(CALC, "IX * A + B")
+    field(OUT, "$(P)$(Q)C$(CHAN):ENERGYSPEC:X PP")
+}
+
 record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT")
 {
     field(DTYP, "asynInt32ArrayIn")
@@ -207,10 +240,12 @@ record(longout, "$(P)$(Q)C$(CHAN):ENERGYSPEC:NBINS:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECNBINS")
 }
 
-record(stringin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE")
+record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE")
 {
     field(DTYP, "asynOctetRead")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECFILENAME")
+	field(NELM, 512)
+	field(FTVL, "CHAR")
 	field(SCAN, "I/O Intr")
 }
 
@@ -238,7 +273,7 @@ record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:DEADTIME")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECDEADTIME")
 	field(PREC, 1)
 	field(SCAN, "I/O Intr")
-	field(EGU, "%")
+	field(EGU, "s")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:OVERFLOWS")
@@ -540,7 +575,7 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE")
 {
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATE")
-	field(EGU, "evnt/trg")
+	field(EGU, "ev/trg")
 	field(PREC, 1)
 	field(SCAN, "I/O Intr")
 }
