@@ -44,11 +44,13 @@
 
 #include "CAENMCADriver.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <process.h>
+#else
 #define _fsopen(a,b,c) fopen(a,b)
 #define _ftelli64 ftell
 #define _fseeki64 fseek
-#endif /* ndef _WIN32 */
+#endif /* ifdef _WIN32 */
 
 #define MAX_ENERGY_BINS  32768   /* need to check energy bin bits? */
 
@@ -350,7 +352,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
 		0, /* Default priority */
 		0),	/* Default stack size*/
 	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_file_fd(2, std::tuple<FILE*, FILE*>{NULL,NULL}),
-    m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL),m_start_time(epicsTime::getCurrent()),m_stop_time(epicsTime::getCurrent()), m_name(portName)
+    m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL),m_start_time(epicsTime::getCurrent()),m_stop_time(epicsTime::getCurrent()), m_name(portName), m_file_dir("ibex")
 {
 	const char *functionName = "CAENMCADriver";
 
@@ -516,6 +518,13 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceName)
     readRegister(0x11B8, val1);
     std::cerr << "NEW: 0x1nB8 register for setting timing was: " << val0 << " " << val1 << std::endl;
 
+
+    std::string ethPrefix = "eth://", deviceName_s(deviceName);
+    m_share_path = "\\\\127.0.0.1\\storage";
+    if (!deviceName_s.compare(0, ethPrefix.size(), ethPrefix)) {
+        m_share_path = std::string("\\\\") + deviceName_s.substr(ethPrefix.size()) + "\\storage";
+    }
+
 	if (epicsThreadCreate("CAENMCADriverPoller",
 		epicsThreadPriorityMedium,
 		epicsThreadGetStackSize(epicsThreadStackMedium),
@@ -536,10 +545,10 @@ void CAENMCADriver::setFileNames()
     epicsSnprintf(runNumber, sizeof(runNumber), "%08d", iRunNumber);
     setStringParam(P_runNumber, runNumber);
     for(int i=0; i<2; ++i) {
-        epicsSnprintf(filename, sizeof(filename), "ibex/%s%s_%s_ch%d.bin", filePrefix.c_str(), runNumber, m_name.c_str(), i);
+        epicsSnprintf(filename, sizeof(filename), "%s/%s%s_ch%d.bin", m_file_dir.c_str(), filePrefix.c_str(), runNumber, i);
         setStringParam(i, P_listFile, filename);
         setListModeFilename(i, filename);
-        epicsSnprintf(filename, sizeof(filename), "ibex/%s%s_%s_spectrum_ch%02d.spe", filePrefix.c_str(), runNumber, m_name.c_str(), i);
+        epicsSnprintf(filename, sizeof(filename), "%s/%s%s_spec_ch%02d.spe", m_file_dir.c_str(), filePrefix.c_str(), runNumber, i);
         setStringParam(i, P_energySpecFilename, filename);
         setEnergySpectrumFilename(i, 0, filename);
     }
@@ -564,15 +573,46 @@ void CAENMCADriver::endRun()
     getStringParam(P_runNumber, runNumber);
     getStringParam(P_startTime, startTime);
     epicsSnprintf(filename, sizeof(filename), "%s%s_%s_info.txt", filePrefix.c_str(), runNumber.c_str(), m_name.c_str());
-    std::fstream f;
-    f.open(filename, std::ios::out | std::ios::trunc);
-    f << "Title: " << title << std::endl;
-    f << "Comment: " << comment << std::endl;
-    f.close();    
-    f.open("journal.txt", std::ios::out | std::ios::app);
-    f << filePrefix << runNumber << " " << m_name << " " << startTime << " " << title << std::endl;
-    f.close();    
+    std::fstream f1, f2;
+    try {
+        f1.open(filename, std::ios::out | std::ios::trunc);
+        f1 << "Title: " << title << std::endl;
+        f1 << "Comment: " << comment << std::endl;
+        f1.close();
+    }
+    catch(const std::exception& ex) {
+        ;
+    }
+    std::string journal_name = "journal_" + m_name + ".txt";
+    try {
+        f2.open(journal_name, std::ios::out | std::ios::app);
+        f2 << filePrefix << runNumber << " " << m_name << " " << startTime << " " << title << std::endl;
+        f2.close();
+    }        
+    catch(const std::exception& ex) {
+        ;
+    }
+    copyData(filePrefix, runNumber.c_str());
     incrementRunNumber();
+}    
+    
+// copyData() doesn't work on linux
+void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumber)
+{
+	static const char* copycmd = getenv("HEXAGON_COPYCMD");
+	static const char* comspec = getenv("COMSPEC");
+	if (copycmd == NULL) 
+	{
+		return;
+	}
+    std::string copycmd_s(copycmd);
+	std::replace(copycmd_s.begin(), copycmd_s.end(), '/', '\\');
+    std::string dir_win = m_file_dir;
+    std::replace(dir_win.begin(), dir_win.end(), '/', '\\');    
+	std::cerr << "Running " << copycmd_s << std::endl;
+#ifdef _WIN32
+    _spawnl(_P_NOWAIT, comspec, comspec, "/c", copycmd_s.c_str(), (m_share_path + "\\" + dir_win).c_str(), filePrefix.c_str(), runNumber, NULL);
+#endif /* _WIN32 */
 }
 
 void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE handle, const char *name)
@@ -1053,8 +1093,19 @@ void CAENMCADriver::getEnergySpectrum(int32_t channel_id, int32_t spectrum_id, s
 }
 	
 void CAENMCADriver::setListModeFilename(int32_t channel_id, const char* filename)
-{ 
-	CAENMCA::SetData(m_chan_h[channel_id], CAEN_MCA_DATA_LIST_MODE, DATAMASK_LIST_FILENAME, filename);
+{
+    std::string current_filename = getListModeFilename(channel_id);
+    if (current_filename != filename) {
+        std::cerr << "Changing list mode filename for channel " << channel_id << " from \"" << current_filename << "\" to \"" << filename << "\"" << std::endl;
+	    CAENMCA::SetData(m_chan_h[channel_id], CAEN_MCA_DATA_LIST_MODE, DATAMASK_LIST_FILENAME, filename);
+    }
+}
+
+std::string CAENMCADriver::getListModeFilename(int32_t channel_id)
+{
+    char buffer[LISTS_FULLPATH_MAXLEN];    
+	CAENMCA::GetData(m_chan_h[channel_id], CAEN_MCA_DATA_LIST_MODE, DATAMASK_LIST_FILENAME, buffer);
+    return std::string(buffer);
 }
 
 void CAENMCADriver::setListModeType(int32_t channel_id,  CAEN_MCA_ListSaveMode_t mode)
@@ -1079,7 +1130,18 @@ CAEN_MCA_HANDLE CAENMCADriver::getSpectrumHandle(CAEN_MCA_HANDLE channel, int32_
 
 void CAENMCADriver::setEnergySpectrumFilename(int32_t channel_id, int32_t spectrum_id, const char* filename)
 {
-	CAENMCA::SetData(getSpectrumHandle(channel_id, spectrum_id), CAEN_MCA_DATA_ENERGYSPECTRUM, DATAMASK_ENERGY_SPECTRUM_FILENAME, filename);
+    std::string current_filename = getEnergySpectrumFilename(channel_id, spectrum_id);
+    if (current_filename != filename) {
+        std::cerr << "Changing energy spectrum filename for channel " << channel_id << " spectrum " << spectrum_id << " from \"" << current_filename << "\" to \"" << filename << "\"" << std::endl;
+	    CAENMCA::SetData(getSpectrumHandle(channel_id, spectrum_id), CAEN_MCA_DATA_ENERGYSPECTRUM, DATAMASK_ENERGY_SPECTRUM_FILENAME, filename);
+    }
+}
+
+std::string CAENMCADriver::getEnergySpectrumFilename(int32_t channel_id, int32_t spectrum_id)
+{
+    char buffer[ENERGYSPECTRUM_FULLPATH_MAXLEN];
+	CAENMCA::GetData(getSpectrumHandle(channel_id, spectrum_id), CAEN_MCA_DATA_ENERGYSPECTRUM, DATAMASK_ENERGY_SPECTRUM_FILENAME, buffer);
+    return std::string(buffer);
 }
 
 void CAENMCADriver::setEnergySpectrumAutosave(int32_t channel_id, int32_t spectrum_id, double period)
@@ -1203,8 +1265,10 @@ asynStatus CAENMCADriver::writeOctet(asynUser *pasynUser, const char *value, siz
 	    }
 	    else if (function == P_filePrefix)
 	    {
-          setStringParam(P_filePrefix, value_s.c_str());
-          setFileNames();
+          // this leads to setting a filename with a zero run number during PINI
+          // so just rely on it being saved and then setFileNames() is called at acquisition start          
+          //setStringParam(P_filePrefix, value_s.c_str());
+          //setFileNames();
 	    }
 	    else if (function == P_configuration)
 	    {
@@ -1365,8 +1429,10 @@ asynStatus CAENMCADriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
         }
 		else if (function == P_iRunNumber)
         {
-            setIntegerParam(P_iRunNumber, value);
-            setFileNames();
+          // this leads to setting a filename with a zero run number during PINI
+          // so just rely on it being saved and then setFileNames() is called at acquisition start          
+          //setIntegerParam(P_iRunNumber, value);
+          //setFileNames();
         }
 		else if (function == P_restart)
         {
@@ -1515,7 +1581,7 @@ static std::string describeFlags(unsigned flags)
 
 bool CAENMCADriver::processListFile(int channel_id)
 {
-    std::string filename, deviceName, ethPrefix = "eth://";
+    std::string filename;
     int enabled = 0, save_mode, load_data_file = 0, reload_live_data = 0;
 	getStringParam(channel_id, P_listFile, filename);
 	getIntegerParam(channel_id, P_listEnabled, &enabled);
@@ -1524,7 +1590,6 @@ bool CAENMCADriver::processListFile(int channel_id)
     getIntegerParam(channel_id, P_reloadLiveData, &reload_live_data);
     double eventSpec2d_TMin = 0.0, eventSpec2d_TMax = 0.0;
     int eventSpec2d_nTBins = 0, eventSpec2d_engBinGroup = 1;
-	getStringParam(P_deviceName, deviceName);
 	getDoubleParam(channel_id, P_eventSpec2DTimeMax, &eventSpec2d_TMax);
 	getDoubleParam(channel_id, P_eventSpec2DTimeMin, &eventSpec2d_TMin);
 	getIntegerParam(channel_id, P_eventSpec2DNTimeBins, &eventSpec2d_nTBins);
@@ -1546,10 +1611,6 @@ bool CAENMCADriver::processListFile(int channel_id)
         }            
     }
     filename_ascii = std::string("c:/Data/") + filename_ascii + ".txt";
-    std::string prefix = "\\\\127.0.0.1\\storage\\";
-    if (!deviceName.compare(0, ethPrefix.size(), ethPrefix)) {
-        prefix = std::string("\\\\") + deviceName.substr(ethPrefix.size()) + "\\storage\\";
-    }
     FILE*& f = std::get<0>(m_file_fd[channel_id]);
     FILE*& f_ascii = std::get<1>(m_file_fd[channel_id]);
     if ( (sizeof(trigger_time) + sizeof(energy) + sizeof(extras)) != EVENT_SIZE )
@@ -1641,7 +1702,7 @@ bool CAENMCADriver::processListFile(int channel_id)
             save_f = f;
             save_event_file_last_pos = m_event_file_last_pos[channel_id];
         } else {
-            p_filename = prefix + filename;
+            p_filename = m_share_path + "\\" + filename;
         }
         std::replace(p_filename.begin(), p_filename.end(), '/', '\\'); 
         

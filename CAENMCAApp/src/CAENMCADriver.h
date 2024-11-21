@@ -56,6 +56,8 @@ private:
     uint32_t m_nbitsEnergy;
     uint32_t m_tsample; // picoseconds
     std::string m_name;
+    std::string m_share_path; // hexagon windows share path
+    std::string m_file_dir;
 
 	double getParameterValue(CAEN_MCA_HANDLE handle, const char *name);
 	void setParameterValue(CAEN_MCA_HANDLE handle, const char *name, double value);
@@ -99,6 +101,9 @@ private:
     void incrementRunNumber();
     void endRun();
     void setStartTime();
+    std::string getEnergySpectrumFilename(int32_t channel_id, int32_t spectrum_id);
+    std::string getListModeFilename(int32_t channel_id);
+    void copyData(const std::string& filePrefix, const char* runNumber);
 
 #define FIRST_CAEN_PARAM P_deviceName
 

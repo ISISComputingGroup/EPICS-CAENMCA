@@ -240,10 +240,12 @@ record(longout, "$(P)$(Q)C$(CHAN):ENERGYSPEC:NBINS:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECNBINS")
 }
 
-record(stringin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE")
+record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE")
 {
     field(DTYP, "asynOctetRead")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECFILENAME")
+	field(NELM, 512)
+	field(FTVL, "CHAR")
 	field(SCAN, "I/O Intr")
 }
 
