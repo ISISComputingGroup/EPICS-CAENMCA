@@ -16,7 +16,7 @@
 class epicsShareClass CAENMCADriver : public ADDriver 
 {
 public:
-	CAENMCADriver(const char *portName, const char *deviceName);
+	CAENMCADriver(const char *portName, const char *deviceAddr, const char* deviceName);
 	virtual asynStatus readOctet(asynUser *pasynUser, char *value, size_t maxChars, size_t *nActual, int *eomReason);
 	virtual asynStatus readInt32(asynUser *pasynUser, epicsInt32 *value);
     virtual asynStatus readFloat64(asynUser *pasynUser, epicsFloat64 *value);
@@ -38,8 +38,8 @@ private:
     template <typename epicsTypeOut, typename epicsTypeIn> 
         int computeArray(int addr, const std::vector<epicsTypeIn>& data, int maxSizeX, int maxSizeY);
     CAEN_MCA_HANDLE m_device_h;
-    epicsTime m_start_time;
-    epicsTime m_stop_time;
+    epicsTime m_start_time[2];
+    epicsTime m_stop_time[2];
     std::vector<CAEN_MCA_HANDLE> m_chan_h;
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
 	std::vector<epicsInt32> m_energy_spec[2];
@@ -55,7 +55,6 @@ private:
 	CAEN_MCA_BoardFamilyCode_t m_famcode;
     uint32_t m_nbitsEnergy;
     uint32_t m_tsample; // picoseconds
-    std::string m_name;
     std::string m_share_path; // hexagon windows share path
     std::string m_file_dir;
 
@@ -100,14 +99,19 @@ private:
     void setFileNames();
     void incrementRunNumber();
     void endRun();
-    void setStartTime();
+    void setStartTime(int chan_mask);
+    void setStopTime(int chan_mask);
     std::string getEnergySpectrumFilename(int32_t channel_id, int32_t spectrum_id);
     std::string getListModeFilename(int32_t channel_id);
     void copyData(const std::string& filePrefix, const char* runNumber);
+    void setRunNumberFromIRunNumber();
+    bool setTimingRegisters();
+    bool checkTimingRegisters();
 
 #define FIRST_CAEN_PARAM P_deviceName
 
 	int P_deviceName; // string
+	int P_deviceAddr; // string
     int P_availableConfigurations; // string
     int P_configuration; // string
 	int P_numEnergySpec; // int
@@ -164,6 +168,7 @@ private:
     int P_runTitle; // string
     int P_runComment; // string
     int P_startTime; // string
+    int P_stopTime; // string
     int P_runDuration; // int
     int P_endRun; // int
     int P_eventSpecRateTMin; // float
@@ -194,6 +199,8 @@ private:
     int P_restart; // int
 	int P_acqInit; // int
 	int P_acqStartMode; // int
+    int P_timingRegisterChan; // int
+    int P_timingRegisters; // int
 	int P_startAcquisition; // int
 	int P_stopAcquisition; // int
 
@@ -208,7 +215,8 @@ private:
 	void pollerTask();
 };
 
-#define P_deviceNameString "DEVICE"
+#define P_deviceNameString "DEVICENAME"
+#define P_deviceAddrString "DEVICEADDR"
 #define P_availableConfigurationsString "CONFIG_AVAIL"
 #define P_configurationString   "CONFIG"
 #define P_numEnergySpecString "NUMENERGYSPEC"
@@ -292,11 +300,14 @@ private:
 #define P_iRunNumberString "IRUNNUMBER"
 #define P_filePrefixString "FILEPREFIX"
 #define P_startTimeString "STARTTIME"
+#define P_stopTimeString "STOPTIME"
 #define P_runDurationString "RUNDURATION"
 #define P_endRunString "ENDRUN"
 #define P_eventSpecRateTMinString "EVENTSPECRATETMIN"
 #define P_eventSpecRateTMaxString "EVENTSPECRATETMAX"
 #define P_eventSpecRateString "EVENTSPECRATE"
+#define P_timingRegisterChanString "TIMINGREGISTERCHAN"
+#define P_timingRegistersString "TIMINGREGISTERS"
 
 #endif /* CAENMCADRIVER_H */
 

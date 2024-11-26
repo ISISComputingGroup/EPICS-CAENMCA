@@ -12,6 +12,8 @@ REM wait for files to close
 REM if we try to MOVE too early file is still in use
 ping 127.0.0.1 -n 30 > nul
 
+@echo Copying to %DSTDIR%
+
 REM move data files
 robocopy "%SRCDIR%" "%DSTDIR%" "%FILEPREFIX%%RUNNUMBER%_*.*" /MOV /NJH /NJS /NP /R:2
 robocopy "%TOP%\iocBoot\%IOC%" "%DSTDIR%" "%FILEPREFIX%%RUNNUMBER%_*.*" /MOV /NJH /NJS /NP /R:2

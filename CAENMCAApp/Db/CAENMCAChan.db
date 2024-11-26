@@ -748,3 +748,43 @@ record(bo, "$(P)$(Q)C$(CHAN):RELOADLIVE:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)RELOADLIVEDATA")
 	field(UDFS, "NO_ALARM")
 }
+
+record(stringin, "$(P)$(Q)C$(CHAN):STARTTIME")
+{
+    field(DESC, "Run Start Time")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),$(CHAN),0)STARTTIME")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
+record(stringin, "$(P)$(Q)C$(CHAN):STOPTIME")
+{
+    field(DESC, "Run Stop Time")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),$(CHAN),0)STOPTIME")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):RUNDURATION")
+{
+    field(DESC, "Run Duration")
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(CHAN),0)RUNDURATION")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+	field(EGU, "s")
+    info(archive, "-30.0 VAL")
+}
+
+record(bi, "$(P)$(Q)C$(CHAN):TIMEREG")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)TIMINGREGISTERCHAN")
+	field(ZNAM, "Error")
+	field(ONAM, "OK")
+	field(SCAN, "I/O Intr")
+}

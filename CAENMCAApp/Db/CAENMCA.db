@@ -1,3 +1,27 @@
+record(waveform, "$(P)$(Q)DEVICE:NAME")
+{
+    field(DESC, "Device Name")
+    field(NELM, "256")
+    field(FTVL, "CHAR")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)DEVICENAME")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
+record(waveform, "$(P)$(Q)DEVICE:ADDR")
+{
+    field(DESC, "Device Addr")
+    field(NELM, "256")
+    field(FTVL, "CHAR")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)DEVICEADDR")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
 record(waveform, "$(P)$(Q)TITLE")
 {
     field(DESC, "Run title")
@@ -74,8 +98,8 @@ record(longout, "$(P)$(Q)_IRUNNUMBER")
     field(OUT,  "@asyn($(PORT),0,0)IRUNNUMBER")
 	field(EGU, "")
     field(PINI, "YES")
-    info(autosaveFields, "VAL")
-    info(asyn:READBACK, "1")
+    info(autosaveFields_pass0, "VAL") # use positions/pass0 as saved more frequently
+    info(asyn:READBACK, "1") # needed as we increment run number in driver code
 }
 
 record(stringin, "$(P)$(Q)FILEPREFIX")
@@ -98,30 +122,10 @@ record(stringout, "$(P)$(Q)FILEPREFIX:SP")
     info(autosaveFields, "VAL")
 }
 
-record(stringin, "$(P)$(Q)STARTTIME")
-{
-    field(DESC, "Run Start Time")
-    field(DTYP, "asynOctetRead")
-    field(INP,  "@asyn($(PORT),0,0)STARTTIME")
-    field(SCAN, "I/O Intr")
-    info(INTEREST, "HIGH")
-    info(archive, "VAL")
-}
-
-record(longin, "$(P)$(Q)RUNDURATION")
-{
-    field(DESC, "Run Duration")
-    field(DTYP, "asynInt32")
-    field(INP,  "@asyn($(PORT),0,0)RUNDURATION")
-    field(SCAN, "I/O Intr")
-    info(INTEREST, "HIGH")
-	field(EGU, "s")
-    info(archive, "-30.0 VAL")
-}
-
+# start both channels on hexagon
 record(bo, "$(P)$(Q)BEGINRUN:SP")
 {
-    field(DESC, "Begin a Run")
+    field(DESC, "Begin this hexagon")
     field(ZNAM, "0")
     field(ONAM, "1")
     #Set the initial alarm state
@@ -129,9 +133,10 @@ record(bo, "$(P)$(Q)BEGINRUN:SP")
     field(FLNK, "$(P)$(Q)START:SP.PROC")
 }
 
+# raise an event to start all hexagons in this IOC
 record(event, "$(P)$(Q)BEGINALL:SP")
 {
-    field(DESC, "Begin a Run")
+    field(DESC, "Begin all hexagons")
     field(VAL, "BeginRun")
 }
 
@@ -145,7 +150,7 @@ record(bo, "$(P)$(Q)BEGINALL")
 
 record(bo, "$(P)$(Q)ABORTRUN:SP")
 {
-    field(DESC, "Abort a Run")
+    field(DESC, "Abort this hexagon")
     field(ZNAM, "0")
     field(ONAM, "1")
     #Set the initial alarm state
@@ -155,7 +160,7 @@ record(bo, "$(P)$(Q)ABORTRUN:SP")
 
 record(event, "$(P)$(Q)ABORTALL:SP")
 {
-    field(DESC, "Abort a Run")
+    field(DESC, "Abort all hexagons")
     field(VAL, "AbortRun")
 }
 
@@ -190,7 +195,7 @@ record(event, "$(P)$(Q)ENDALL:SP")
     field(VAL, "EndRun")
 }
 
-record(bo, "$(P)$(Q)ABORALL")
+record(bo, "$(P)$(Q)ENDALL")
 {
     field(SCAN, "Event")
     field(EVNT, "EndRun")
@@ -255,6 +260,7 @@ record(waveform, "$(P)$(Q)CONFIGS")
 	field(SCAN, "I/O Intr")
 }
 
+# are both channels running
 record(bi, "$(P)$(Q)ACQ:RUNNING")
 {
     field(DTYP, "asynInt32")
@@ -264,3 +270,11 @@ record(bi, "$(P)$(Q)ACQ:RUNNING")
 	field(SCAN, "I/O Intr")
 }
 
+record(bi, "$(P)$(Q)TIMEREGS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),0,0)TIMINGREGISTERS")
+	field(ZNAM, "Error")
+	field(ONAM, "OK")
+	field(SCAN, "I/O Intr")
+}
