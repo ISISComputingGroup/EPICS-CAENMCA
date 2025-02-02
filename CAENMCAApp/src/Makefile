@@ -16,9 +16,21 @@ CAENMCALIB = $(ICPBINARYDIR)/CAENMCA/Windows
 endif
 LIBRARY_IOC += CAENMCASup
 
-PROD_HOST += filereader
+PROD_HOST += filereader fileconverter
 filereader_SRC += filereader.cpp
+fileconverter_SRC += fileconverter.cpp
 filereader_LIBS += $(EPICS_BASE_HOST_LIBS)
+fileconverter_LIBS += hdf5 hdf5_hl $(EPICS_BASE_HOST_LIBS)
+
+ifeq ($(STATIC_BUILD), NO)
+    USR_CXXFLAGS_WIN32    += -DH5_BUILT_AS_DYNAMIC_LIB
+    USR_CFLAGS_WIN32      += -DH5_BUILT_AS_DYNAMIC_LIB
+else
+    USR_CXXFLAGS_WIN32    += -DH5_BUILT_AS_STATIC_LIB
+    USR_CFLAGS_WIN32      += -DH5_BUILT_AS_STATIC_LIB
+endif
+
+
 
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord

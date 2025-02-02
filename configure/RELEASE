@@ -45,6 +45,7 @@ CAENMCA=$(SUPPORT)/CAENMCA/master
 ASYN=$(SUPPORT)/asyn/master
 ONCRPC=$(SUPPORT)/oncrpc/master
 AREA_DETECTOR=$(SUPPORT)/areaDetector/master
+ADSUPPORT=$(AREA_DETECTOR)/ADSupport
 
 # optional extra local definitions here
 -include $(TOP)/configure/RELEASE.private
