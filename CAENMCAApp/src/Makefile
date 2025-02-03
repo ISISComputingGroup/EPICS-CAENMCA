@@ -20,7 +20,9 @@ PROD_HOST += filereader fileconverter
 filereader_SRC += filereader.cpp
 fileconverter_SRC += fileconverter.cpp
 filereader_LIBS += $(EPICS_BASE_HOST_LIBS)
-fileconverter_LIBS += hdf5 hdf5_hl $(EPICS_BASE_HOST_LIBS)
+fileconverter_LIBS_WIN32 += hdf5 hdf5_hl 
+fileconverter_LIBS += $(EPICS_BASE_HOST_LIBS)
+fileconverter_SYS_LIBS_Linux += hdf5 hdf5_hl szip jpeg
 
 ifeq ($(STATIC_BUILD), NO)
     USR_CXXFLAGS_WIN32    += -DH5_BUILT_AS_DYNAMIC_LIB
@@ -29,8 +31,6 @@ else
     USR_CXXFLAGS_WIN32    += -DH5_BUILT_AS_STATIC_LIB
     USR_CFLAGS_WIN32      += -DH5_BUILT_AS_STATIC_LIB
 endif
-
-
 
 # xxxRecord.h will be created from xxxRecord.dbd
 #DBDINC += xxxRecord
