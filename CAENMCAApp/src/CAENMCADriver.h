@@ -107,6 +107,7 @@ private:
     void setRunNumberFromIRunNumber();
     bool setTimingRegisters();
     bool checkTimingRegisters();
+    void cycleAcquisition();
 
 #define FIRST_CAEN_PARAM P_deviceName
 

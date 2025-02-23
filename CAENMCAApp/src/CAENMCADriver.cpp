@@ -573,7 +573,7 @@ void CAENMCADriver::incrementRunNumber()
     getIntegerParam(P_iRunNumber, &iRunNumber);
     ++iRunNumber;
     setIntegerParam(P_iRunNumber, iRunNumber);
-    setFileNames();    
+    setFileNames();
 }
 
 void CAENMCADriver::endRun()
@@ -637,6 +637,7 @@ void CAENMCADriver::endRun()
     }
     copyData(filePrefix, runNumber.c_str());
     incrementRunNumber();
+    cycleAcquisition(); // we briefly start and stop to force picup of new filename so we can move old ones
 }    
     
 // copyData() doesn't work on linux
@@ -741,7 +742,7 @@ double CAENMCADriver::getParameterValue(CAEN_MCA_HANDLE handle, const char *name
 	return value;
 }
 
-// parameter of type list
+// parameter of type list, which is basically a string enum
 std::string CAENMCADriver::getParameterValueList(CAEN_MCA_HANDLE handle, const char *name)
 {
 	char pvalue[PARAMINFO_NAME_MAXLEN];
@@ -756,10 +757,16 @@ void CAENMCADriver::setParameterValue(CAEN_MCA_HANDLE handle, const char *name, 
 	CAENMCA::SetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_NUMERIC, value);
 }
 
+// parameter of type list, which is basically a string enum
+// value is a valid "codename" for the parameter
 void CAENMCADriver::setParameterValueList(CAEN_MCA_HANDLE handle, const char *name, const std::string& value)
 {
-	CAEN_MCA_HANDLE parameter = CAENMCA::GetChildHandleByName(handle, CAEN_MCA_HANDLE_PARAMETER, name);
-	CAENMCA::SetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_NUMERIC, value.c_str());  // DATAMASK_VALUE_CODENAME ?
+    // we create a local copy as that is what CAEN example did for a constant char* value
+    char pvalue[PARAMINFO_NAME_MAXLEN];
+    memset(pvalue, 0, sizeof(pvalue));
+    strncpy(pvalue, value.c_str(), sizeof(pvalue) - 1);
+    CAEN_MCA_HANDLE parameter = CAENMCA::GetChildHandleByName(handle, CAEN_MCA_HANDLE_PARAMETER, name);
+    CAENMCA::SetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_CODENAME, pvalue);
 }
 
 void CAENMCADriver::setHVState(CAEN_MCA_HANDLE hvchan, bool is_on)
@@ -949,6 +956,17 @@ void CAENMCADriver::setStopTime(int chan_mask)
         }
     }
 }
+
+// this cycles hardware acquisition on and off. This is done after we have changed the list
+// mode filename as it seems CAEN may keep the original file open after a stop so we just briefly
+// start and stop so new filename is loaded by hardware
+void CAENMCADriver::cycleAcquisition()
+{
+    CAENMCA::SendCommand(m_device_h, CAEN_MCA_CMD_ACQ_START, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
+    epicsThreadSleep(0.1);
+    CAENMCA::SendCommand(m_device_h, CAEN_MCA_CMD_ACQ_STOP, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
+}
+
 
 void CAENMCADriver::controlAcquisition(int chan_mask, bool start)
 {
