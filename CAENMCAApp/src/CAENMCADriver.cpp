@@ -63,7 +63,7 @@ void CAENMCADriver::report(FILE* fp, int details)
     readRegister(0x10B8, val0);
     readRegister(0x11B8, val1);
     fprintf(fp, "0x10B8 and 0x11B8 registers for setting timing are: %u %u\n", val0, val1);
-	ADDriver::report(fp, details);
+    ADDriver::report(fp, details);
 }
 
 void CAENMCADriver::setADAcquire(int addr, int acquire)
@@ -717,13 +717,24 @@ void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE parameter)
 	);
 	fprintf(stdout, "Parameter: %s (%s)\n", parameter_codename, parameter_name);
 	switch (type) {
-	case CAEN_MCA_PARAMETER_TYPE_RANGE:
-		fprintf(stdout, "\tMin: %f max: %f incr: %f\n", min, max, incr);
-		break;
-	case CAEN_MCA_PARAMETER_TYPE_LIST:
-		for (uint32_t i = 0; i < nallowed_values; i++)
-			fprintf(stdout, "\tAllowed value: %s [%s] (%f)\n", allowed_value_codenames[i], allowed_value_names[i], allowed_values[i]);
-		break;
+    case CAEN_MCA_PARAMETER_TYPE_RANGE:
+        fprintf(stdout, "\tMin: %f max: %f incr: %f\n", min, max, incr);
+        {
+            double value;
+            CAENMCA::GetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_NUMERIC, &value);
+            fprintf(stdout, "\tcurrent value: %f\n", value);
+        }
+        break;
+    case CAEN_MCA_PARAMETER_TYPE_LIST:
+        for (uint32_t i = 0; i < nallowed_values; i++) {
+            fprintf(stdout, "\tAllowed codename [name] (value): %s [%s] (%f)\n", allowed_value_codenames[i], allowed_value_names[i], allowed_values[i]);
+        }
+        {
+            char value[PARAMINFO_NAME_MAXLEN];
+            CAENMCA::GetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_CODENAME, value);
+            fprintf(stdout, "\tcurrent value codename: \"%s\"\n", value);
+        }
+        break;
 	default:
 		fprintf(stderr, "\tUnknown parameter type.\n");
 	}
@@ -789,6 +800,7 @@ bool CAENMCADriver::isAcqRunning()
 }
 
 // return true if register values needed changing
+// we stopped using this as it didn't really do things as expected
 bool CAENMCADriver::setTimingRegisters()
 {
     bool ret = true;
@@ -911,7 +923,7 @@ void CAENMCADriver::stopAcquisition(int addr, int value)
 
 void CAENMCADriver::startAcquisition(int addr, int value)
 {
-    //setTimingRegisters();
+    // setTimingRegisters();
     if (!checkTimingRegisters()) {
         std::cerr << "Timing registers not set" << std::endl;
     }
@@ -963,7 +975,7 @@ void CAENMCADriver::setStopTime(int chan_mask)
 void CAENMCADriver::cycleAcquisition()
 {
     CAENMCA::SendCommand(m_device_h, CAEN_MCA_CMD_ACQ_START, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
-    epicsThreadSleep(0.1);
+    epicsThreadSleep(0.2);
     CAENMCA::SendCommand(m_device_h, CAEN_MCA_CMD_ACQ_STOP, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
 }
 
@@ -985,6 +997,8 @@ void CAENMCADriver::controlAcquisition(int chan_mask, bool start)
             if (start) {
                 clearEnergySpectrum(0);
                 clearEnergySpectrum(1);
+                setListsData(0, true, true, true);
+                setListsData(1, true, true, true);
             }
 			CAENMCA::SendCommand(m_device_h, cmdtype, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
             setADAcquire(0, (start ? 1 : 0));
@@ -998,6 +1012,7 @@ void CAENMCADriver::controlAcquisition(int chan_mask, bool start)
 				{
                     if (start) {
                         clearEnergySpectrum(i);
+                        setListsData(i, true, true, true);
                     }
 					CAENMCA::SendCommand(m_chan_h[i], cmdtype, DATAMASK_CMD_NONE, DATAMASK_CMD_NONE);
                     setADAcquire(i, (start ? 1 : 0));
@@ -1011,6 +1026,7 @@ void CAENMCADriver::controlAcquisition(int chan_mask, bool start)
             setFileNames();
             setStartTime(0x1);
             clearEnergySpectrum(0);
+            setListsData(0, true, true, true);
         } else {
             setStopTime(0x1);
         }
@@ -1125,9 +1141,10 @@ void CAENMCADriver::setData(CAEN_MCA_HANDLE handle, CAEN_MCA_DataType_t dataType
 	CAENMCA::SetData(handle, dataType, dataMask, value);
 }
 
-void CAENMCADriver::setListsData(CAEN_MCA_HANDLE channel, bool timetag, bool energy, bool extras) 
+void CAENMCADriver::setListsData(int32_t channel_id, bool timetag, bool energy, bool extras)
 {
 	uint32_t mask = 0;
+	CAEN_MCA_HANDLE channel = m_chan_h[channel_id];
 	if (timetag)	mask |= LIST_FILE_DATAMASK_TIMETAG;
 	if (energy)		mask |= LIST_FILE_DATAMASK_ENERGY;
 	if (extras)		mask |= LIST_FILE_DATAMASK_FLAGS;
