@@ -290,14 +290,14 @@ struct CAENMCA
         }
         CAEN_MCA_HANDLE collection = CAENMCA::GetChildHandle(parent, CAEN_MCA_HANDLE_COLLECTION, handleType);
         uint32_t collection_length = 0;
-        CAEN_MCA_HANDLE collection_handles[COLLECTION_MAXLEN] = { NULL };
+        std::vector<CAEN_MCA_HANDLE> collection_handles(COLLECTION_MAXLEN, NULL);
         CAENMCA::GetData(
             collection,
             CAEN_MCA_DATA_COLLECTION,
             DATAMASK_COLLECTION_LENGTH |
             DATAMASK_COLLECTION_HANDLES,
             &collection_length,
-            collection_handles
+            collection_handles.data()
         );
 		int32_t type, index;
 		std::string name;
@@ -317,7 +317,7 @@ struct CAENMCA
         if (simulate) {
             return;
         }
-		char name_c[HANDLE_NAME_MAXLEN];
+		std::vector<char> name_c(HANDLE_NAME_MAXLEN, '\0');
 		CAENMCA::GetData(
 			handle,
 			CAEN_MCA_DATA_HANDLE_INFO,
@@ -326,9 +326,9 @@ struct CAENMCA
 			DATAMASK_HANDLE_NAME,
 			&type,
 			&index,
-			name_c
+			name_c.data()
 		);
-		name = name_c;		
+		name = name_c.data();
 	}
 	
 };
@@ -515,14 +515,14 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     getChannelInfo(0);
     getChannelInfo(1);
 	
-    std::cerr << "hv0 on " << isHVOn(m_hv_chan_h[0]) << std::endl;
-    std::cerr << "hv1 on " << isHVOn(m_hv_chan_h[1]) << std::endl;
+    std::cerr << "hv0 " << (isHVOn(m_hv_chan_h[0]) ? "on" : "off") << std::endl;
+    std::cerr << "hv1 " << (isHVOn(m_hv_chan_h[1]) ? "on" : "off") << std::endl;
         
-	std::cerr << isAcqRunning() << " " << isAcqRunning(m_chan_h[0]) << " " << isAcqRunning(m_chan_h[1]) << std::endl;
+	std::cerr << "Acq running: " << isAcqRunning() << " (chan0: " << isAcqRunning(m_chan_h[0]) << ", chan1: " << isAcqRunning(m_chan_h[1]) << ")" << std::endl;
 
     // setTimingRegisters();
     if (!checkTimingRegisters()) {
-        std::cerr << "Timing registers not set" << std::endl;
+        std::cerr << "WARNING: Timing registers not set" << std::endl;
     }
 
     std::string ethPrefix = "eth://", deviceAddr_s(deviceAddr);
@@ -667,19 +667,19 @@ void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE handle, const char *name)
 	
 void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE parameter)
 {
-	char parameter_name[PARAMINFO_NAME_MAXLEN] = { '\0' };
-	char parameter_codename[PARAMINFO_NAME_MAXLEN] = { '\0' };
+	std::vector<char> parameter_name(PARAMINFO_NAME_MAXLEN, '\0');
+	std::vector<char> parameter_codename(PARAMINFO_NAME_MAXLEN, '\0');
 	uint32_t infobits;
-	char uom_name[PARAMINFO_NAME_MAXLEN] = { '\0' };
-	char uom_codename[PARAMINFO_NAME_MAXLEN] = { '\0' };
+	std::vector<char> uom_name(PARAMINFO_NAME_MAXLEN, '\0');
+	std::vector<char> uom_codename(PARAMINFO_NAME_MAXLEN, '\0');
 	int32_t uom_power;
 	CAEN_MCA_ParameterType_t type;
 	double min, max, incr;
 	uint32_t nallowed_values;
-	double allowed_values[PARAMINFO_LIST_MAXLEN] = { 0. };
-	char *allowed_value_codenames[PARAMINFO_LIST_MAXLEN] = { NULL };
-	char *allowed_value_names[PARAMINFO_LIST_MAXLEN] = { NULL };
-	for (uint32_t i = 0; i < PARAMINFO_LIST_MAXLEN; i++) {
+	std::vector<double> allowed_values(PARAMINFO_LIST_MAXLEN, 0.0);
+	std::vector<char*> allowed_value_codenames(PARAMINFO_LIST_MAXLEN, NULL);
+	std::vector<char*> allowed_value_names(PARAMINFO_LIST_MAXLEN, NULL);
+	for (int32_t i = 0; i < PARAMINFO_LIST_MAXLEN; i++) {
 		allowed_value_codenames[i] = (char*)calloc(PARAMINFO_NAME_MAXLEN, sizeof(char));
 		allowed_value_names[i] = (char*)calloc(PARAMINFO_NAME_MAXLEN, sizeof(char));
 	}
@@ -700,22 +700,22 @@ void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE parameter)
 		DATAMASK_PARAMINFO_ALLOWED_VALUES |
 		DATAMASK_PARAMINFO_ALLOWED_VALUE_CODENAMES |
 		DATAMASK_PARAMINFO_ALLOWED_VALUE_NAMES,
-		parameter_name,
-		parameter_codename,
+		parameter_name.data(),
+		parameter_codename.data(),
 		&infobits,
-		uom_name,
-		uom_codename,
+		uom_name.data(),
+		uom_codename.data(),
 		&uom_power,
 		&type,
 		&min,
 		&max,
 		&incr,
 		&nallowed_values,
-		allowed_values,
-		allowed_value_codenames,
-		allowed_value_names
+		allowed_values.data(),
+		allowed_value_codenames.data(),
+		allowed_value_names.data()
 	);
-	fprintf(stdout, "Parameter: %s (%s)\n", parameter_codename, parameter_name);
+	fprintf(stdout, "Parameter: %s (%s)\n", parameter_codename.data(), parameter_name.data());
 	switch (type) {
     case CAEN_MCA_PARAMETER_TYPE_RANGE:
         fprintf(stdout, "\tMin: %f max: %f incr: %f\n", min, max, incr);
@@ -730,16 +730,16 @@ void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE parameter)
             fprintf(stdout, "\tAllowed codename [name] (value): %s [%s] (%f)\n", allowed_value_codenames[i], allowed_value_names[i], allowed_values[i]);
         }
         {
-            char value[PARAMINFO_NAME_MAXLEN];
-            CAENMCA::GetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_CODENAME, value);
-            fprintf(stdout, "\tcurrent value codename: \"%s\"\n", value);
+            std::vector<char> value(PARAMINFO_NAME_MAXLEN, '\0');
+            CAENMCA::GetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_CODENAME, value.data());
+            fprintf(stdout, "\tcurrent value codename: \"%s\"\n", value.data());
         }
         break;
 	default:
 		fprintf(stderr, "\tUnknown parameter type.\n");
 	}
-	fprintf(stdout, "\tUnit of measurement: %s (power: %d)\n", uom_name, uom_power);
-	for (uint32_t i = 0; i < PARAMINFO_LIST_MAXLEN; i++) {
+	fprintf(stdout, "\tUnit of measurement: %s (power: %d)\n", uom_name.data(), uom_power);
+	for (int32_t i = 0; i < PARAMINFO_LIST_MAXLEN; i++) {
 		free(allowed_value_codenames[i]);
 	}
 }
@@ -756,10 +756,10 @@ double CAENMCADriver::getParameterValue(CAEN_MCA_HANDLE handle, const char *name
 // parameter of type list, which is basically a string enum
 std::string CAENMCADriver::getParameterValueList(CAEN_MCA_HANDLE handle, const char *name)
 {
-	char pvalue[PARAMINFO_NAME_MAXLEN];
+	std::vector<char> pvalue(PARAMINFO_NAME_MAXLEN, '\0');
 	CAEN_MCA_HANDLE parameter = CAENMCA::GetChildHandleByName(handle, CAEN_MCA_HANDLE_PARAMETER, name);
-    CAENMCA::GetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_CODENAME, pvalue);
-	return pvalue;
+    CAENMCA::GetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_CODENAME, pvalue.data());
+	return pvalue.data();
 }
 
 void CAENMCADriver::setParameterValue(CAEN_MCA_HANDLE handle, const char *name, double value)
@@ -773,11 +773,10 @@ void CAENMCADriver::setParameterValue(CAEN_MCA_HANDLE handle, const char *name, 
 void CAENMCADriver::setParameterValueList(CAEN_MCA_HANDLE handle, const char *name, const std::string& value)
 {
     // we create a local copy as that is what CAEN example did for a constant char* value
-    char pvalue[PARAMINFO_NAME_MAXLEN];
-    memset(pvalue, 0, sizeof(pvalue));
-    strncpy(pvalue, value.c_str(), sizeof(pvalue) - 1);
+    std::vector<char> pvalue(PARAMINFO_NAME_MAXLEN, '\0');
+    strncpy(pvalue.data(), value.c_str(), pvalue.size() - 1);
     CAEN_MCA_HANDLE parameter = CAENMCA::GetChildHandleByName(handle, CAEN_MCA_HANDLE_PARAMETER, name);
-    CAENMCA::SetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_CODENAME, pvalue);
+    CAENMCA::SetData(parameter, CAEN_MCA_DATA_PARAMETER_VALUE, DATAMASK_VALUE_CODENAME, pvalue.data());
 }
 
 void CAENMCADriver::setHVState(CAEN_MCA_HANDLE hvchan, bool is_on)
@@ -800,23 +799,20 @@ bool CAENMCADriver::isAcqRunning()
 }
 
 // return true if register values needed changing
-// we stopped using this as it didn't really do things as expected
 bool CAENMCADriver::setTimingRegisters()
 {
-    bool ret = true;
-    uint32_t val0 = 0, val1 = 0;
-    readRegister(0x10B8, val0);
-    readRegister(0x11B8, val1);
-    if ((val0 & 0x2 == 0x2) && (val1 & 0x2 == 0x2)) {
-        ret = false;
+    if (checkTimingRegisters()) {
+        return false;
     }
-    std::cerr << "OLD: 0x10B8 and 0x11B8 registers for setting timing were: " << val0 << " " << val1 << std::endl;
+    std::cerr << "Setting timing registers" << std::endl;
     writeRegisterMask(0x10B8, 0x2, 0x2);
     writeRegisterMask(0x11B8, 0x2, 0x2);
-    readRegister(0x10B8, val0);
-    readRegister(0x11B8, val1);
-    std::cerr << "NEW: 0x10B8 and 0x11B8 registers for setting timing are: " << val0 << " " << val1 << std::endl;
-    return ret;
+    if (checkTimingRegisters()) {
+        std::cerr << "Timing registers now OK" << std::endl;
+    } else {
+        std::cerr << "WARNING: Timing registers not set" << std::endl;
+    }
+    return true;
 }
 
 // return true if OK, false if not
@@ -825,17 +821,17 @@ bool CAENMCADriver::checkTimingRegisters()
     uint32_t val0 = 0, val1 = 0;
     readRegister(0x10B8, val0);
     readRegister(0x11B8, val1);
-    if (val0 & 0x2 == 0x2) {
+    if ((val0 & 0x2) == 0x2) {
         setIntegerParam(0, P_timingRegisterChan, 1);
     } else {
         setIntegerParam(0, P_timingRegisterChan, 0);
     }
-    if (val1 & 0x2 == 0x2) {
+    if ((val1 & 0x2) == 0x2) {
         setIntegerParam(1, P_timingRegisterChan, 1);
     } else {
         setIntegerParam(1, P_timingRegisterChan, 0);
     }
-    if ( (val0 & 0x2 == 0x2) && (val1 & 0x2 == 0x2) ) {
+    if ( ((val0 & 0x2) == 0x2) && ((val1 & 0x2) == 0x2) ) {
         setIntegerParam(P_timingRegisters, 1);
         return true;
     } else {
@@ -852,7 +848,7 @@ bool CAENMCADriver::isAcqRunning(CAEN_MCA_HANDLE chan)
 
 void CAENMCADriver::getHVInfo(uint32_t hv_chan_id)
 {
-    char hvrange_name[HVRANGEINFO_NAME_MAXLEN];
+    std::vector<char> hvrange_name(HVRANGEINFO_NAME_MAXLEN, '\0');
 	double vset_min, vset_max, vset_incr, vmax_max, vmax, vmon, imon;
     double hvpol, hvstat, vset, iset, tmon, hv_active_range, rampup, rampdown;
     uint32_t nranges;
@@ -882,7 +878,7 @@ void CAENMCADriver::getHVInfo(uint32_t hv_chan_id)
 		&vset_max,
 		&vset_incr,
 		&vmax_max,
-        hvrange_name);
+        hvrange_name.data());
 	vset = getParameterValue(hvrange, "PARAM_HVRANGE_VSET");
 	iset = getParameterValue(hvrange, "PARAM_HVRANGE_ISET");
 	vmon = getParameterValue(hvrange, "PARAM_HVRANGE_VMON");
@@ -900,7 +896,7 @@ void CAENMCADriver::getHVInfo(uint32_t hv_chan_id)
 	setDoubleParam(hv_chan_id, P_tmon, tmon);
 	setDoubleParam(hv_chan_id, P_rampdown, rampdown);
 	setDoubleParam(hv_chan_id, P_rampup, rampup);
-    setStringParam(hv_chan_id, P_hvRangeName, hvrange_name); 
+    setStringParam(hv_chan_id, P_hvRangeName, hvrange_name.data());
 	setIntegerParam(hv_chan_id, P_hvPolarity, hvpol); // CAEN_MCA_POLARITY_TYPE_POSITIVE=0, CAEN_MCA_POLARITY_TYPE_NEGATIVE=1
 	setIntegerParam(hv_chan_id, P_hvStatus, hvstat); 
     setIntegerParam(hv_chan_id, P_hvOn, (isHVOn(hvchannel) ? 1 : 0));
@@ -925,7 +921,7 @@ void CAENMCADriver::startAcquisition(int addr, int value)
 {
     // setTimingRegisters();
     if (!checkTimingRegisters()) {
-        std::cerr << "Timing registers not set" << std::endl;
+        std::cerr << "WARNING: Timing registers not set" << std::endl;
     }
     if (value < 2) // is it a bo record sending 0 or 1, if so single channel and use asyn addr for channel
     {
@@ -1102,7 +1098,7 @@ void CAENMCADriver::getBoardInfo()
 {
 
 	uint32_t channels, hvchannels, serialNum, pcbrev, nbits;
-	char modelName[MODEL_NAME_MAXLEN] = { '\0' };
+	std::vector<char> modelName(MODEL_NAME_MAXLEN, '\0');
 
 	CAENMCA::GetData(
 		m_device_h,
@@ -1115,7 +1111,7 @@ void CAENMCADriver::getBoardInfo()
 		DATAMASK_BRDINFO_ADC_BIT_COUNT |
 		DATAMASK_BRDINFO_TSAMPLE_PS |
 		DATAMASK_BRDINFO_ENERGY_BIT_COUNT,
-		modelName,
+		modelName.data(),
 		&channels,
 		&serialNum,
 		&hvchannels,
@@ -1125,7 +1121,7 @@ void CAENMCADriver::getBoardInfo()
 		&m_nbitsEnergy
 	);
  	
-	fprintf(stdout, "Device name: %s\n", modelName);
+	fprintf(stdout, "Device name: %s\n", modelName.data());
 	fprintf(stdout, "PCB revision: %d\n", pcbrev);
 	fprintf(stdout, "Number of input channels: %d\n", channels);
 	fprintf(stdout, "Number of ADC bits: %d\n", nbits);
@@ -1168,9 +1164,9 @@ void CAENMCADriver::listConfigurations(std::vector<std::string>& configs)
 {
     uint32_t offset = 0;
     uint32_t cnt_found = 0;
-    char *savenames[CONFIGSAVE_LIST_MAXLEN];
+    std::vector<char*> savenames(CONFIGSAVE_LIST_MAXLEN, NULL);
 	configs.resize(0);
-    for (uint32_t i = 0; i < CONFIGSAVE_LIST_MAXLEN; i++) {
+    for (int32_t i = 0; i < CONFIGSAVE_LIST_MAXLEN; i++) {
         savenames[i] = (char*)calloc(CONFIGSAVE_FULLPATH_MAXLEN, sizeof(*savenames[i]));
     }
     CAENMCA::SendCommand(
@@ -1181,12 +1177,12 @@ void CAENMCADriver::listConfigurations(std::vector<std::string>& configs)
         DATAMASK_CMD_SAVE_LIST_NAMES,
         offset,
         &cnt_found,
-        savenames
+        savenames.data()
     );
     for (uint32_t i = 0; i < cnt_found; i++) {
 	    configs.push_back(savenames[i]);
 	}
-    for (uint32_t i = 0; i < CONFIGSAVE_LIST_MAXLEN; i++) {
+    for (int32_t i = 0; i < CONFIGSAVE_LIST_MAXLEN; i++) {
         free(savenames[i]);
     }
 }
@@ -1202,7 +1198,7 @@ void CAENMCADriver::getEnergySpectrum(int32_t channel_id, int32_t spectrum_id, s
 	uint64_t nentries;
 	uint32_t nrois;
 	uint32_t autosaveperiod;
-	char filename[ENERGYSPECTRUM_FULLPATH_MAXLEN];
+	std::vector<char> filename(ENERGYSPECTRUM_FULLPATH_MAXLEN, '\0');
 
     data.resize(ENERGYSPECTRUM_MAXLEN);
 
@@ -1227,13 +1223,13 @@ void CAENMCADriver::getEnergySpectrum(int32_t channel_id, int32_t spectrum_id, s
 		&underflows,
 		&nentries,
 		&nrois,
-		filename,
+		filename.data(),
 		&autosaveperiod
 	);
 	uint32_t nbins = getParameterValue(spectrum, "PARAM_ENERGY_SPECTRUM_NBINS");
 	setIntegerParam(channel_id, P_energySpecCounts, nentries);
     setIntegerParam(channel_id, P_energySpecNBins, nbins);
-    setStringParam(channel_id, P_energySpecFilename, filename);    
+    setStringParam(channel_id, P_energySpecFilename, filename.data());
     setDoubleParam(channel_id, P_energySpecRealtime, realtime * 1.0e-9);
 	setDoubleParam(channel_id, P_energySpeclivetime, livetime * 1.0e-9);
 	setDoubleParam(channel_id, P_energySpecdeadtime, deadtime * 1.0e-9);
@@ -1255,9 +1251,9 @@ void CAENMCADriver::setListModeFilename(int32_t channel_id, const char* filename
 
 std::string CAENMCADriver::getListModeFilename(int32_t channel_id)
 {
-    char buffer[LISTS_FULLPATH_MAXLEN];    
-	CAENMCA::GetData(m_chan_h[channel_id], CAEN_MCA_DATA_LIST_MODE, DATAMASK_LIST_FILENAME, buffer);
-    return std::string(buffer);
+    std::vector<char> buffer(LISTS_FULLPATH_MAXLEN, '\0');
+	CAENMCA::GetData(m_chan_h[channel_id], CAEN_MCA_DATA_LIST_MODE, DATAMASK_LIST_FILENAME, buffer.data());
+    return std::string(buffer.data());
 }
 
 void CAENMCADriver::setListModeType(int32_t channel_id,  CAEN_MCA_ListSaveMode_t mode)
@@ -1291,9 +1287,9 @@ void CAENMCADriver::setEnergySpectrumFilename(int32_t channel_id, int32_t spectr
 
 std::string CAENMCADriver::getEnergySpectrumFilename(int32_t channel_id, int32_t spectrum_id)
 {
-    char buffer[ENERGYSPECTRUM_FULLPATH_MAXLEN];
-	CAENMCA::GetData(getSpectrumHandle(channel_id, spectrum_id), CAEN_MCA_DATA_ENERGYSPECTRUM, DATAMASK_ENERGY_SPECTRUM_FILENAME, buffer);
-    return std::string(buffer);
+    std::vector<char> buffer(ENERGYSPECTRUM_FULLPATH_MAXLEN, '\0');
+	CAENMCA::GetData(getSpectrumHandle(channel_id, spectrum_id), CAEN_MCA_DATA_ENERGYSPECTRUM, DATAMASK_ENERGY_SPECTRUM_FILENAME, buffer.data());
+    return std::string(buffer.data());
 }
 
 void CAENMCADriver::setEnergySpectrumAutosave(int32_t channel_id, int32_t spectrum_id, double period)
@@ -1608,7 +1604,7 @@ void CAENMCADriver::getLists(uint32_t channel_id)
 	CAEN_MCA_ListSaveMode_t savemode;
 	uint32_t enabled;
 	uint32_t datamask;
-	char filename[LISTS_FULLPATH_MAXLEN];
+	std::vector<char> filename(LISTS_FULLPATH_MAXLEN, '\0');
 	std::vector<uint64_t> datatimetag;
 	std::vector<uint32_t> dataenergy;
 	std::vector<uint16_t> dataflags;
@@ -1625,7 +1621,7 @@ void CAENMCADriver::getLists(uint32_t channel_id)
 		DATAMASK_LIST_NEVTS,
 		&enabled,
 		&savemode,
-		filename,
+		filename.data(),
 		&datamask,
 		&getfake,
         &maxnevts,
@@ -1657,7 +1653,7 @@ void CAENMCADriver::getLists(uint32_t channel_id)
 	
 	setIntegerParam(channel_id, P_nEvents, nevts);
 	setIntegerParam(channel_id, P_listMaxNEvents, maxnevts);
-	setStringParam(channel_id, P_listFile, filename);
+	setStringParam(channel_id, P_listFile, filename.data());
 	setIntegerParam(channel_id, P_listEnabled, enabled);
 	setIntegerParam(channel_id, P_listSaveMode, savemode);
     // set a parameter to datamask	
