@@ -83,7 +83,7 @@ private:
 	void getLists(uint32_t channel_id);
     void setListModeFilename(int32_t channel_id, const char* filename);	
 	template <typename T> void setData(CAEN_MCA_HANDLE handle, CAEN_MCA_DataType_t dataType, uint64_t dataMask, T value);
-	void setListsData(CAEN_MCA_HANDLE channel, bool timetag, bool energy, bool extras);
+	void setListsData(int32_t channel_id, bool timetag, bool energy, bool extras);
 	void setEnergySpectrumParameter(CAEN_MCA_HANDLE channel, int32_t spectrum_id, const char* parname, double value);
 	void getEnergySpectrum(int32_t channel_id, int32_t spectrum_id, std::vector<epicsInt32>& data);
 	template <typename T> void energySpectrumSetProperty(CAEN_MCA_HANDLE channel, int32_t spectrum_id, int prop, T value);
@@ -107,6 +107,7 @@ private:
     void setRunNumberFromIRunNumber();
     bool setTimingRegisters();
     bool checkTimingRegisters();
+    void cycleAcquisition();
 
 #define FIRST_CAEN_PARAM P_deviceName
 
