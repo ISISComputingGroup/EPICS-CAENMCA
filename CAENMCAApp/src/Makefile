@@ -24,7 +24,7 @@ CAENMCA_DIR = $(CAENMCALIB)/lib/$(CAENARCH)
 endif
 LIBRARY_IOC += CAENMCASup
 
-PROD_HOST += filereader fileconverter
+PROD_HOST += filereader fileconverter fileconverter2
 filereader_SRC += filereader.cpp
 filereader_LIBS += $(EPICS_BASE_HOST_LIBS)
 
@@ -33,6 +33,12 @@ fileconverter_SRC += fileconverter.cpp
 fileconverter_LIBS += $(LIB_LIBS)
 fileconverter_SYS_LIBS += $(LIB_SYS_LIBS)
 fileconverter_LIBS += $(EPICS_BASE_HOST_LIBS)
+
+fileconverter2_SRC += fileconverter2.cpp
+#fileconverter2_LIBS += hdf5_hl hdf5 szip zlib jpeg
+fileconverter2_LIBS += $(LIB_LIBS)
+fileconverter2_SYS_LIBS += $(LIB_SYS_LIBS)
+fileconverter2_LIBS += $(EPICS_BASE_HOST_LIBS)
 
 ifeq ($(STATIC_BUILD), NO)
     USR_CXXFLAGS_WIN32    += -DH5_BUILT_AS_DYNAMIC_LIB
