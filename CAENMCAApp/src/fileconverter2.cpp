@@ -19,7 +19,7 @@ static std::string describeFlags(unsigned flags);
 
 // add n items to dataset that already contains n_total
 template <typename T>
-void appendData(uint64_t n, uint64_t n_total, hf::DataSet& dset, T* data)
+void appendData(hsize_t n, hsize_t n_total, hf::DataSet& dset, T* data)
 {
     if (n == 0)
     {
@@ -87,7 +87,9 @@ int main(int argc, char* argv[])
     {
         epicsThreadSleep(1.0);
     }
-    int64_t frame = 0, last_pos, current_pos, new_bytes, nevents = 0, nevents_total = 0;
+    frame_number_t frame = 0;
+    int64_t last_pos, current_pos, new_bytes, nevents = 0;
+    size_t nevents_total = 0;
     uint64_t frame_start = 0;
     while(true)
     {
@@ -121,7 +123,7 @@ int main(int argc, char* argv[])
         {
             break;
         }   
-        int n = 0;
+        size_t n = 0;
         for(int j=0; j<nevents; ++j)
         {
             if (fread(trigger_time + n, sizeof(trigger_time[0]), 1, f) != 1)
