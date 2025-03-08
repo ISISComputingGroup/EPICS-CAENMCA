@@ -19,7 +19,7 @@ static std::string describeFlags(unsigned flags);
 
 // add n items to dataset that already contains n_total
 template <typename T>
-void appendData(hsize_t n, hsize_t n_total, hf::DataSet& dset, T* data)
+void appendData(size_t n, size_t n_total, hf::DataSet& dset, T* data)
 {
     if (n == 0)
     {
