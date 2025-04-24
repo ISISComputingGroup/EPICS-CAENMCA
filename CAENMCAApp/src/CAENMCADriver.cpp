@@ -9,6 +9,15 @@
 
 //#pragma warning(push, 0)
 
+#ifdef _WIN32
+#include <windows.h>
+#include <process.h>
+#else
+#define _fsopen(a,b,c) fopen(a,b)
+#define _ftelli64 ftell
+#define _fseeki64 fseek
+#endif /* ifdef _WIN32 */
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -44,17 +53,37 @@
 
 #include "CAENMCADriver.h"
 
-#ifdef _WIN32
-#include <process.h>
-#else
-#define _fsopen(a,b,c) fopen(a,b)
-#define _ftelli64 ftell
-#define _fseeki64 fseek
-#endif /* ifdef _WIN32 */
 
 #define MAX_ENERGY_BINS  32768   /* need to check energy bin bits? */
 
 static const char *driverName = "CAENMCADriver"; ///< Name of driver for use in message printing 
+
+#ifdef _WIN32
+
+// spawn command with no handle inheritance and no wait for completion
+static int spawnCommand(const std::string& program, const std::string& args)
+{
+    char command[MAX_PATH];
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+    BOOL status;
+    DWORD dwCreationFlags = 0;
+    ZeroMemory( &si, sizeof(si) );
+    si.cb = sizeof(si);
+    ZeroMemory( &pi, sizeof(pi) );
+    epicsSnprintf(command, sizeof(command), "\"%s\" /c \"%s\" %s", getenv("ComSpec"), program.c_str(), args.c_str());
+    status = CreateProcess(NULL, command, NULL, NULL, FALSE, dwCreationFlags, NULL, NULL, &si, &pi);
+    if (!status) {
+        DWORD error = GetLastError();
+        std::cerr << "spawnCommand: Cannot create process for '" << command << "': error " << error << std::endl;
+        return -1;
+    }
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    return 0;
+}
+
+#endif
 
 /// EPICS driver report function for iocsh dbior command
 void CAENMCADriver::report(FILE* fp, int details)
@@ -644,18 +673,14 @@ void CAENMCADriver::endRun()
 void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumber)
 {
 	static const char* copycmd = getenv("HEXAGON_COPYCMD");
-	static const char* comspec = getenv("COMSPEC");
-	if (copycmd == NULL || comspec == NULL) 
-	{
-		return;
-	}
     std::string copycmd_s(copycmd);
 	std::replace(copycmd_s.begin(), copycmd_s.end(), '/', '\\');
     std::string dir_win = m_file_dir;
     std::replace(dir_win.begin(), dir_win.end(), '/', '\\');    
-	std::cerr << "Running " << copycmd_s << std::endl;
 #ifdef _WIN32
-    _spawnl(_P_NOWAIT, comspec, comspec, "/c", copycmd_s.c_str(), (m_share_path + "\\" + dir_win).c_str(), filePrefix.c_str(), runNumber, NULL);
+    std::string args = (m_share_path + "\\" + dir_win) + " " + filePrefix + " " + runNumber;
+	std::cerr << "Running \"" << copycmd_s << "\" " << args << std::endl;
+    spawnCommand(copycmd_s, args);
 #endif /* _WIN32 */
 }
 
