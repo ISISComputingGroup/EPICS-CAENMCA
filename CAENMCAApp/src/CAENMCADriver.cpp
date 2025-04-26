@@ -75,7 +75,7 @@ static int spawnCommand(const std::string& program, const std::string& args)
     status = CreateProcess(NULL, command, NULL, NULL, FALSE, dwCreationFlags, NULL, NULL, &si, &pi);
     if (!status) {
         DWORD error = GetLastError();
-        std::cerr << "spawnCommand: Cannot create process for '" << command << "': error " << error << std::endl;
+        std::cerr << "spawnCommand: Cannot create process for '" << command << "': error 0x" << std::hex << error << std::dec << std::endl;
         return -1;
     }
     CloseHandle(pi.hThread);
@@ -673,6 +673,9 @@ void CAENMCADriver::endRun()
 void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumber)
 {
 	static const char* copycmd = getenv("HEXAGON_COPYCMD");
+    if (copycmd == NULL) {
+        return;
+    }
     std::string copycmd_s(copycmd);
 	std::replace(copycmd_s.begin(), copycmd_s.end(), '/', '\\');
     std::string dir_win = m_file_dir;
