@@ -108,6 +108,7 @@ private:
     bool setTimingRegisters();
     bool checkTimingRegisters();
     void cycleAcquisition();
+    void closeListFiles();
 
 #define FIRST_CAEN_PARAM P_deviceName
 

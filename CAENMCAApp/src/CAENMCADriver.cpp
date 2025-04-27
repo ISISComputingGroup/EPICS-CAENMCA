@@ -605,6 +605,22 @@ void CAENMCADriver::incrementRunNumber()
     setFileNames();
 }
 
+void CAENMCADriver::closeListFiles()
+{
+    for(int channel_id=0; channel_id < m_file_fd.size(); ++channel_id) {
+        FILE*& f = std::get<0>(m_file_fd[channel_id]);
+        FILE*& f_ascii = std::get<1>(m_file_fd[channel_id]);
+        if (f != NULL) {
+            fclose(f);
+            f = NULL;
+        }
+        if (f_ascii != NULL) {
+            fclose(f_ascii);
+            f_ascii = NULL;
+        }
+    } 
+}
+
 void CAENMCADriver::endRun()
 {
     std::string filePrefix, title, comment, runNumber, startTime, stopTime, deviceName;
@@ -664,9 +680,11 @@ void CAENMCADriver::endRun()
     catch(const std::exception& ex) {
         std::cerr << "Cannot write " << journal_name << ": " << ex.what() << std::endl;
     }
-    copyData(filePrefix, runNumber.c_str());
+    std::string old_run_number = runNumber.c_str();
+    closeListFiles();
     incrementRunNumber();
-    cycleAcquisition(); // we briefly start and stop to force picup of new filename so we can move old ones
+    cycleAcquisition(); // we briefly start and stop to force pickup of new filename so we can move old ones
+    copyData(filePrefix, old_run_number.c_str());
 }    
     
 // copyData() doesn't work on linux
