@@ -43,23 +43,37 @@ static hf::Group createNeXusGroup(hf::Group& current, const std::string& name, c
     return new_group;
 }
 
+static const char* getArgStr(int arg, int argc, char* argv[], const char* default_arg)
+{
+    return arg < argc ? argv[arg] : default_arg;    
+}
+
+static double getArgDouble(int arg, int argc, char* argv[], double default_arg)
+{
+    return arg < argc ? atof(argv[arg]) : default_arg;    
+}
+
 int main(int argc, char* argv[])
 {
-    const char* input_filename = argv[1];
-    const char* output_filename = argv[2];
+    const char* input_filename = getArgStr(1, argc, argv, NULL);
+    const char* output_filename = getArgStr(2, argc, argv, NULL);
+    //  energy =  a * energy_raw + b
+    double energy_a = getArgDouble(3, argc, argv, 1.0);
+    double energy_b = getArgDouble(4, argc, argv, 0.0);
     const int NEVENTS_READ = 1000;
     typedef uint64_t trigger_time_t, frame_time_t;
     typedef uint32_t extras_t, frame_number_t;
     typedef int16_t energy_t;
     trigger_time_t trigger_time[NEVENTS_READ];
     frame_time_t frame_time[NEVENTS_READ];
-    energy_t energy[NEVENTS_READ];
+    energy_t energy_raw[NEVENTS_READ];
+    double energy[NEVENTS_READ];
     extras_t extras[NEVENTS_READ];
     frame_number_t frame_number[NEVENTS_READ];
     int fake_events = 0;
     const size_t EVENT_SIZE = 14;
 
-    if ( (sizeof(trigger_time[0]) + sizeof(energy[0]) + sizeof(extras[0])) != EVENT_SIZE )
+    if ( (sizeof(trigger_time[0]) + sizeof(energy_raw[0]) + sizeof(extras[0])) != EVENT_SIZE )
     {
         std::cerr << "size error" << std::endl;
         return 0;
@@ -80,6 +94,7 @@ int main(int argc, char* argv[])
     hf::DataSet dset_frame_time = instrument.createDataSet("frame_time", dataspace, hf::create_datatype<frame_time_t>(), props);
     hf::DataSet dset_frame_number = instrument.createDataSet("frame_number", dataspace, hf::create_datatype<frame_number_t>(), props);
     hf::DataSet dset_extras = instrument.createDataSet("extras", dataspace, hf::create_datatype<extras_t>(), props);
+    hf::DataSet dset_energy_raw = instrument.createDataSet("energy_raw", dataspace, hf::create_datatype<energy_t>(), props);
     hf::DataSet dset_energy = instrument.createDataSet("energy", dataspace, hf::create_datatype<energy_t>(), props);
     
     FILE* f = NULL;
@@ -132,7 +147,7 @@ int main(int argc, char* argv[])
                 return 0;
             }
             trigger_time[n] /= 1000;  // convert from ps to ns
-            if (fread(energy + n, sizeof(energy[0]), 1, f) != 1)
+            if (fread(energy_raw + n, sizeof(energy_raw[0]), 1, f) != 1)
             {
                 std::cerr << "fread energy error" << std::endl;
                 return 0;
@@ -142,15 +157,16 @@ int main(int argc, char* argv[])
                 std::cerr << "fread extras error" << std::endl;
                 return 0;
             }
-            if (extras[n] == 0x8 && energy[n] == 0)
+            if (extras[n] == 0x8 && energy_raw[n] == 0)
             {
                 ++frame;
                 frame_start = trigger_time[n];
             }
             frame_time[n] = trigger_time[n] - frame_start;
             frame_number[n] = frame;
-            if ( energy[n] > 0 && energy[n] != 32767 && !(extras[n] & 0x8) )
+            if ( energy_raw[n] > 0 && energy_raw[n] != 32767 && !(extras[n] & 0x8) )
             {
+                energy[n] = energy_a * energy_raw[n] + energy_b;
                 ++n; // real event
             }
         }
@@ -158,6 +174,7 @@ int main(int argc, char* argv[])
         appendData(n, nevents_total, dset_frame_time, frame_time);
         appendData(n, nevents_total, dset_frame_number, frame_number);
         appendData(n, nevents_total, dset_extras, extras);
+        appendData(n, nevents_total, dset_energy_raw, energy_raw);
         appendData(n, nevents_total, dset_energy, energy);
         nevents_total += n;
     }

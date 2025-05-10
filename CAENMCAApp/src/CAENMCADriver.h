@@ -103,7 +103,7 @@ private:
     void setStopTime(int chan_mask);
     std::string getEnergySpectrumFilename(int32_t channel_id, int32_t spectrum_id);
     std::string getListModeFilename(int32_t channel_id);
-    void copyData(const std::string& filePrefix, const char* runNumber);
+    void copyData(const std::string& filePrefix, const char* runNumber, const std::vector<std::string>& list_filenames);
     void setRunNumberFromIRunNumber();
     bool setTimingRegisters();
     bool checkTimingRegisters();
@@ -132,6 +132,8 @@ private:
     int P_energySpecUnderflows; // int
     int P_energySpecAutosave; // double
     int P_energySpecClear; // int
+    int P_energySpecScaleA; // double
+    int P_energySpecScaleB; // double
 	int P_nEvents; // int
 	int P_nEventsProcessed; // int
  	int P_eventsSpecY; // double array
@@ -237,6 +239,8 @@ private:
 #define P_energySpecOverflowsString "ENERGYSPECOVERFLOWS"
 #define P_energySpecUnderflowsString "ENERGYSPECUNDERFLOWS"
 #define P_energySpecAutosaveString "ENERGYSPECAUTOSAVE"
+#define P_energySpecScaleAString "ENERGYSPECSCALEA"
+#define P_energySpecScaleBString "ENERGYSPECSCALEB"
 #define P_nEventsString "NEVENTS"
 #define P_nEventsProcessedString "NEVENTSPROCESSED"
 #define P_vmonString "VMON"

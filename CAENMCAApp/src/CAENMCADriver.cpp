@@ -405,6 +405,8 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
 	createParam(P_energySpecOverflowsString, asynParamInt32, &P_energySpecOverflows);
 	createParam(P_energySpecUnderflowsString, asynParamInt32, &P_energySpecUnderflows);
 	createParam(P_energySpecAutosaveString, asynParamFloat64, &P_energySpecAutosave);
+	createParam(P_energySpecScaleAString, asynParamFloat64, &P_energySpecScaleA);
+	createParam(P_energySpecScaleBString, asynParamFloat64, &P_energySpecScaleB);
 	createParam(P_nEventsString, asynParamInt32, &P_nEvents);
 	createParam(P_nEventsProcessedString, asynParamInt32, &P_nEventsProcessed);
 	createParam(P_vmonString, asynParamFloat64, &P_vmon);
@@ -681,14 +683,18 @@ void CAENMCADriver::endRun()
         std::cerr << "Cannot write " << journal_name << ": " << ex.what() << std::endl;
     }
     std::string old_run_number = runNumber.c_str();
+    std::vector<std::string> list_filenames(2);
+    for(int i=0; i<2; ++i) {
+        getStringParam(i, P_listFile, list_filenames[i]);
+    }
     closeListFiles();
     incrementRunNumber();
     cycleAcquisition(); // we briefly start and stop to force pickup of new filename so we can move old ones
-    copyData(filePrefix, old_run_number.c_str());
+    copyData(filePrefix, old_run_number.c_str(), list_filenames);
 }    
     
 // copyData() doesn't work on linux
-void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumber)
+void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumber, const std::vector<std::string>& list_filenames)
 {
 	static const char* copycmd = getenv("HEXAGON_COPYCMD");
     if (copycmd == NULL) {
@@ -697,11 +703,22 @@ void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumbe
     std::string copycmd_s(copycmd);
 	std::replace(copycmd_s.begin(), copycmd_s.end(), '/', '\\');
     std::string dir_win = m_file_dir;
-    std::replace(dir_win.begin(), dir_win.end(), '/', '\\');    
+    std::replace(dir_win.begin(), dir_win.end(), '/', '\\');
 #ifdef _WIN32
-    std::string args = (m_share_path + "\\" + dir_win) + " " + filePrefix + " " + runNumber;
-	std::cerr << "Running \"" << copycmd_s << "\" " << args << std::endl;
-    spawnCommand(copycmd_s, args);
+    std::ostringstream args;
+    args << m_share_path << "\\" << dir_win << " " << filePrefix << " " << runNumber;
+    for(int i=0; i<2; ++i) {
+        double scaleA = 0.0, scaleB = 0.0;
+        getDoubleParam(i, P_energySpecScaleA, &scaleA);
+        getDoubleParam(i, P_energySpecScaleB, &scaleB);
+        auto const pos = list_filenames[i].find_last_of('/');
+        if (pos != std::string::npos) {
+            std::string filename= list_filenames[i].substr(pos + 1);
+            args << " " << filename << " " << scaleA << " " << scaleB;
+	        std::cerr << "Running \"" << copycmd_s << "\" " << args.str() << std::endl;
+            spawnCommand(copycmd_s, args.str());
+        }
+    }
 #endif /* _WIN32 */
 }
 
