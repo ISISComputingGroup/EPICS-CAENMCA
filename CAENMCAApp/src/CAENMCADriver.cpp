@@ -271,7 +271,7 @@ struct CAENMCA
             ERROR_CHECK("CAENMCA::SetData()", retcode);
         }
     }
-
+    
     static void SendCommand(CAEN_MCA_HANDLE handle, CAEN_MCA_CommandType_t cmdType, uint64_t cmdMaskIn, uint64_t cmdMaskOut, ...)
     {
         if (!simulate) {
@@ -698,6 +698,7 @@ void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumbe
 {
 	static const char* copycmd = getenv("HEXAGON_COPYCMD");
     if (copycmd == NULL) {
+        std::cerr << "No HEXAGON_COPYCMD defined" << std::endl;
         return;
     }
     std::string copycmd_s(copycmd);
@@ -705,19 +706,27 @@ void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumbe
     std::string dir_win = m_file_dir;
     std::replace(dir_win.begin(), dir_win.end(), '/', '\\');
 #ifdef _WIN32
-    std::ostringstream args;
-    args << m_share_path << "\\" << dir_win << " " << filePrefix << " " << runNumber;
     for(int i=0; i<2; ++i) {
+        std::ostringstream args;
+        args << m_share_path << "\\" << dir_win << " " << filePrefix << " " << runNumber << " " << i;
         double scaleA = 0.0, scaleB = 0.0;
         getDoubleParam(i, P_energySpecScaleA, &scaleA);
         getDoubleParam(i, P_energySpecScaleB, &scaleB);
-        auto const pos = list_filenames[i].find_last_of('/');
+        auto const pos = list_filenames[i].find_last_of("/\\");
+        std::string filename;
         if (pos != std::string::npos) {
-            std::string filename= list_filenames[i].substr(pos + 1);
-            args << " " << filename << " " << scaleA << " " << scaleB;
-	        std::cerr << "Running \"" << copycmd_s << "\" " << args.str() << std::endl;
-            spawnCommand(copycmd_s, args.str());
+            filename = list_filenames[i].substr(pos + 1);
+        } else {
+            filename = list_filenames[i];
         }
+        if (filename.size() == 0) {
+	        std::cerr << "copyData: No filename for channel " << i << std::endl;
+            continue;
+        }
+        args << " " << filename << " " << scaleA << " " << scaleB;
+	    std::cerr << "Running \"" << copycmd_s << "\" " << args.str() << std::endl;
+        spawnCommand(copycmd_s, args.str());
+        epicsThreadSleep(1.0);
     }
 #endif /* _WIN32 */
 }

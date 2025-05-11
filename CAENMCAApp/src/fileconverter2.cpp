@@ -60,20 +60,29 @@ int main(int argc, char* argv[])
     //  energy =  a * energy_raw + b
     double energy_a = getArgDouble(3, argc, argv, 1.0);
     double energy_b = getArgDouble(4, argc, argv, 0.0);
-    const int NEVENTS_READ = 1000;
+    const int NEVENTS_READ = 100000;
     typedef uint64_t trigger_time_t, frame_time_t;
-    typedef uint32_t extras_t, frame_number_t;
+    typedef uint32_t extras_t;
     typedef int16_t energy_t;
-    trigger_time_t trigger_time[NEVENTS_READ];
-    frame_time_t frame_time[NEVENTS_READ];
-    energy_t energy_raw[NEVENTS_READ];
-    double energy[NEVENTS_READ];
-    extras_t extras[NEVENTS_READ];
-    frame_number_t frame_number[NEVENTS_READ];
+    trigger_time_t trigger_time;
+    frame_time_t reference_time;
+    bool reference_time_set = false;
+    energy_t energy_raw;
+    extras_t extras;
+
+    std::vector<int32_t> event_frame_number(NEVENTS_READ);
+    std::vector<uint32_t> event_id(NEVENTS_READ);
+    std::vector<uint64_t> event_index(NEVENTS_READ);
+    std::vector<double> event_time_offset(NEVENTS_READ);
+    std::vector<double> event_time_zero(NEVENTS_READ);
+    std::vector<int32_t> event_energy_raw(NEVENTS_READ);
+    std::vector<double> event_energy(NEVENTS_READ);
+    std::vector<uint32_t> event_flags(NEVENTS_READ);
+    
     int fake_events = 0;
     const size_t EVENT_SIZE = 14;
 
-    if ( (sizeof(trigger_time[0]) + sizeof(energy_raw[0]) + sizeof(extras[0])) != EVENT_SIZE )
+    if ( (sizeof(trigger_time) + sizeof(energy_raw) + sizeof(extras)) != EVENT_SIZE )
     {
         std::cerr << "size error" << std::endl;
         return 0;
@@ -87,24 +96,30 @@ int main(int argc, char* argv[])
     hf::DataSetCreateProps props;
     props.add(hf::Chunking(std::vector<hsize_t>{NEVENTS_READ}));
     hf::Group raw_data_1 = createNeXusGroup(out_file, "raw_data_1", "NXentry");
-    hf::Group instrument = createNeXusGroup(raw_data_1, "instrument", "NXinstrument");
+    hf::Group instrument = createNeXusGroup(raw_data_1, "detector_1_events", "NXdata");
     // using decltype() didn't work hence _t typedefs
-    hf::DataSet dset_trigger_time = instrument.createDataSet("trigger_time", dataspace, hf::create_datatype<trigger_time_t>(), props);
-    dset_trigger_time.createAttribute<std::string>("units", "ns");
-    hf::DataSet dset_frame_time = instrument.createDataSet("frame_time", dataspace, hf::create_datatype<frame_time_t>(), props);
-    hf::DataSet dset_frame_number = instrument.createDataSet("frame_number", dataspace, hf::create_datatype<frame_number_t>(), props);
-    hf::DataSet dset_extras = instrument.createDataSet("extras", dataspace, hf::create_datatype<extras_t>(), props);
-    hf::DataSet dset_energy_raw = instrument.createDataSet("energy_raw", dataspace, hf::create_datatype<energy_t>(), props);
-    hf::DataSet dset_energy = instrument.createDataSet("energy", dataspace, hf::create_datatype<energy_t>(), props);
     
+    hf::DataSet dset_event_time_zero = instrument.createDataSet("event_time_zero", dataspace, hf::create_datatype<double>(), props);
+    dset_event_time_zero.createAttribute<std::string>("units", "s");
+    hf::DataSet dset_event_time_offset = instrument.createDataSet("event_time_offset", dataspace, hf::create_datatype<double>(), props);
+    dset_event_time_offset.createAttribute<std::string>("units", "ns");
+    hf::DataSet dset_event_frame_number = instrument.createDataSet("event_frame_number", dataspace, hf::create_datatype<int32_t>(), props);
+    hf::DataSet dset_event_id = instrument.createDataSet("event_id", dataspace, hf::create_datatype<uint32_t>(), props);
+    hf::DataSet dset_event_index = instrument.createDataSet("event_index", dataspace, hf::create_datatype<uint64_t>(), props);
+    hf::DataSet dset_event_energy = instrument.createDataSet("event_energy", dataspace, hf::create_datatype<double>(), props);
+    hf::DataSet dset_event_energy_raw= instrument.createDataSet("event_energy_raw", dataspace, hf::create_datatype<int32_t>(), props);
+    hf::DataSet dset_event_flags = instrument.createDataSet("event_flags", dataspace, hf::create_datatype<uint32_t>(), props);
+    
+    // wait for file access
     FILE* f = NULL;
     while( (f = _fsopen(input_filename, "rb", _SH_DENYNO)) == NULL )
     {
         epicsThreadSleep(1.0);
     }
-    frame_number_t frame = 0;
+
+    int frame = -1;
     int64_t last_pos, current_pos, new_bytes, nevents = 0;
-    size_t nevents_total = 0;
+    size_t nevents_total = 0, nevents_raw_total = 0, nframes_total = 0;
     uint64_t frame_start = 0;
     while(true)
     {
@@ -138,47 +153,74 @@ int main(int argc, char* argv[])
         {
             break;
         }   
-        size_t n = 0;
+        size_t n = 0, nf = 0;
         for(int j=0; j<nevents; ++j)
-        {
-            if (fread(trigger_time + n, sizeof(trigger_time[0]), 1, f) != 1)
+        {            
+            if (fread(&trigger_time, sizeof(trigger_time), 1, f) != 1)
             {
                 std::cerr << "fread time error" << std::endl;
                 return 0;
             }
-            trigger_time[n] /= 1000;  // convert from ps to ns
-            if (fread(energy_raw + n, sizeof(energy_raw[0]), 1, f) != 1)
+            if (fread(&energy_raw, sizeof(energy_raw), 1, f) != 1)
             {
                 std::cerr << "fread energy error" << std::endl;
                 return 0;
             }
-            if (fread(extras + n, sizeof(extras[0]), 1, f) != 1)
+            if (fread(&extras, sizeof(extras), 1, f) != 1)
             {
                 std::cerr << "fread extras error" << std::endl;
                 return 0;
             }
-            if (extras[n] == 0x8 && energy_raw[n] == 0)
+            // reference to time of first event
+            if (!reference_time_set) {
+                reference_time = trigger_time;
+                reference_time_set = true;
+            }
+            if (extras == 0x8 && energy_raw == 0)
             {
                 ++frame;
-                frame_start = trigger_time[n];
+                frame_start = trigger_time;
+                event_frame_number[nf] = frame;
+                event_time_zero[nf] = (trigger_time - reference_time) / 1e12; // ps to second
+                event_index[nf] = n + nevents_total;
+                if (nframes_total == 0 && nf == 0) {
+                    std::cerr << "First frame sync after " << event_time_zero[nf] << " seconds into run" << std::endl;
+                }
+                ++nf;
             }
-            frame_time[n] = trigger_time[n] - frame_start;
-            frame_number[n] = frame;
-            if ( energy_raw[n] > 0 && energy_raw[n] != 32767 && !(extras[n] & 0x8) )
+            if (frame < 0) {
+                continue; // skip events until see first frame
+            }
+            if ( energy_raw > 0 && energy_raw != 32767 && !(extras & 0x8) )
             {
-                energy[n] = energy_a * energy_raw[n] + energy_b;
+                event_energy_raw[n] = energy_raw;
+                event_energy[n] = energy_a * energy_raw + energy_b;
+                event_id[n] = 0;
+                event_time_offset[n] = (trigger_time - frame_start) / 1e3; // ps to ns
+                event_flags[n] = extras;
+                if (nevents_total == 0 && n == 0) {
+                    std::cerr << "First detector event after " << (trigger_time - reference_time) / 1e12 << " seconds into run" << std::endl;
+                }
                 ++n; // real event
             }
         }
-        appendData(n, nevents_total, dset_trigger_time, trigger_time);
-        appendData(n, nevents_total, dset_frame_time, frame_time);
-        appendData(n, nevents_total, dset_frame_number, frame_number);
-        appendData(n, nevents_total, dset_extras, extras);
-        appendData(n, nevents_total, dset_energy_raw, energy_raw);
-        appendData(n, nevents_total, dset_energy, energy);
+        appendData(nf, nframes_total, dset_event_frame_number, event_frame_number.data());
+        appendData(nf, nframes_total, dset_event_index, event_index.data());
+        appendData(nf, nframes_total, dset_event_time_zero, event_time_zero.data());
+        appendData(n, nevents_total, dset_event_time_offset, event_time_offset.data());
+        appendData(n, nevents_total, dset_event_id, event_id.data());
+        appendData(n, nevents_total, dset_event_energy_raw, event_energy_raw.data());
+        appendData(n, nevents_total, dset_event_energy, event_energy.data());
+        appendData(n, nevents_total, dset_event_flags, event_flags.data());
         nevents_total += n;
+        nframes_total += nf;
+        nevents_raw_total += nevents;
     }
-    fclose(f);   
+    fclose(f);
+    if (nframes_total != frame + 1) {
+        std::cerr << "frame total error" << std::endl;
+    }
+    std::cout << "Processed " << nframes_total << " frames with "<< nevents_total << " detector events and " << nevents_raw_total - nevents_total - nframes_total << " other events" << std::endl; 
     return 0;
 }
 
