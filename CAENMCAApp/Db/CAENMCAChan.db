@@ -17,16 +17,20 @@ record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC:X")
 # A * bin_number + B
 record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:SCALE:A")
 {
+    field(DTYP, "asynFloat64")
     field(VAL, "1")
 	field(PINI, "YES")
+    field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECSCALEA")
     field(PREC, 2)
 	info(autosaveFields, "VAL")
 }
 
 record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:SCALE:B")
 {
+    field(DTYP, "asynFloat64")
     field(VAL, "0")
 	field(PINI, "YES")
+    field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECSCALEB")
     field(PREC, 2)
 	info(autosaveFields, "VAL")
 }
