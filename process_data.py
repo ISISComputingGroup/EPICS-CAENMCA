@@ -29,7 +29,7 @@ for frame in range(0, num_frames):
         next_frame_index = event_index[frame + 1]
     else:
         next_frame_index = num_events
-    num_frame_events = next_frame_index - event_index[frame]
+    num_frame_events = int(next_frame_index - event_index[frame])
     print(f"This frame has {num_frame_events} events")
     start = int(event_index[frame])
     for e in range(0, num_frame_events):
