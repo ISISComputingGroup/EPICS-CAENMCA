@@ -49,10 +49,29 @@
 
 #include <CAENMCA.h>
 
+#include <highfive/highfive.hpp>
+namespace hf = HighFive;
+
+#include <h5nexus.h>
+
+
+// mysql
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <cppconn/warning.h>
+#include <cppconn/metadata.h>
+#include <cppconn/prepared_statement.h>
+#include <cppconn/resultset.h>
+#include <cppconn/resultset_metadata.h>
+#include <cppconn/statement.h>
+#include "mysql_driver.h"
+#include "mysql_connection.h"
+
 #include <epicsExport.h>
 
 #include "CAENMCADriver.h"
 
+static std::vector<CAENMCADriver*> g_drivers;
 
 #define MAX_ENERGY_BINS  32768   /* need to check energy bin bits? */
 
@@ -63,7 +82,7 @@ static const char *driverName = "CAENMCADriver"; ///< Name of driver for use in 
 // spawn command with no handle inheritance and no wait for completion
 static int spawnCommand(const std::string& program, const std::string& args)
 {
-    char command[MAX_PATH];
+    std::ostringstream command;
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
     BOOL status;
@@ -71,11 +90,13 @@ static int spawnCommand(const std::string& program, const std::string& args)
     ZeroMemory( &si, sizeof(si) );
     si.cb = sizeof(si);
     ZeroMemory( &pi, sizeof(pi) );
-    epicsSnprintf(command, sizeof(command), "\"%s\" /c \"%s\" %s", getenv("ComSpec"), program.c_str(), args.c_str());
-    status = CreateProcess(NULL, command, NULL, NULL, FALSE, dwCreationFlags, NULL, NULL, &si, &pi);
+    command << "\"" << getenv("ComSpec") << "\" /c \"" << program << "\" " << args;
+    char* cstr = strdup(command.str().c_str());
+    status = CreateProcess(NULL, cstr, NULL, NULL, FALSE, dwCreationFlags, NULL, NULL, &si, &pi);
+    free(cstr);
     if (!status) {
         DWORD error = GetLastError();
-        std::cerr << "spawnCommand: Cannot create process for '" << command << "': error 0x" << std::hex << error << std::dec << std::endl;
+        std::cerr << "spawnCommand: Cannot create process for '" << command.str() << "': error 0x" << std::hex << error << std::dec << std::endl;
         return -1;
     }
     CloseHandle(pi.hThread);
@@ -475,6 +496,9 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     createParam(P_stopTimeString, asynParamOctet,  &P_stopTime);
     createParam(P_runDurationString,  asynParamInt32, &P_runDuration);
     createParam(P_endRunString, asynParamInt32,  &P_endRun);
+    createParam(P_endRunAllString, asynParamInt32,  &P_endRunAll);
+    createParam(P_beginRunString, asynParamInt32,  &P_beginRun);
+    createParam(P_beginRunAllString, asynParamInt32,  &P_beginRunAll);
     createParam(P_eventSpecRateTMinString, asynParamFloat64,  &P_eventSpecRateTMin);
     createParam(P_eventSpecRateTMaxString, asynParamFloat64,  &P_eventSpecRateTMax);
     createParam(P_eventSpecRateString, asynParamFloat64,  &P_eventSpecRate);
@@ -576,23 +600,23 @@ void CAENMCADriver::setRunNumberFromIRunNumber()
 {
     char runNumber[16];
     int iRunNumber = 0;
-    getIntegerParam(P_iRunNumber, &iRunNumber);
+    g_drivers[0]->getIntegerParam(g_drivers[0]->P_iRunNumber, &iRunNumber);
     epicsSnprintf(runNumber, sizeof(runNumber), "%08d", iRunNumber);
-    setStringParam(P_runNumber, runNumber);    
+    g_drivers[0]->setStringParam(g_drivers[0]->P_runNumber, runNumber);    
 }
 
 void CAENMCADriver::setFileNames()
 {
-    std::string filePrefix, runNumber;
+    std::string deviceName, runNumber;
     char filename[256];
     setRunNumberFromIRunNumber();
-    getStringParam(P_filePrefix, filePrefix);
-    getStringParam(P_runNumber, runNumber);
+    g_drivers[0]->getStringParam(g_drivers[0]->P_runNumber, runNumber);
+    getStringParam(P_deviceName, deviceName);
     for(int i=0; i<2; ++i) {
-        epicsSnprintf(filename, sizeof(filename), "%s/%s%s_ch%d.bin", m_file_dir.c_str(), filePrefix.c_str(), runNumber.c_str(), i);
+        epicsSnprintf(filename, sizeof(filename), "%s/%s_%s_ch%d.bin", m_file_dir.c_str(), deviceName.c_str(), runNumber.c_str(), i);
         setStringParam(i, P_listFile, filename);
         setListModeFilename(i, filename);
-        epicsSnprintf(filename, sizeof(filename), "%s/%s%s_spec_ch%02d.spe", m_file_dir.c_str(), filePrefix.c_str(), runNumber.c_str(), i);
+        epicsSnprintf(filename, sizeof(filename), "%s/%s_%s_spec_ch%02d.spe", m_file_dir.c_str(), deviceName.c_str(), runNumber.c_str(), i);
         setStringParam(i, P_energySpecFilename, filename);
         setEnergySpectrumFilename(i, 0, filename);
     }
@@ -601,10 +625,12 @@ void CAENMCADriver::setFileNames()
 void CAENMCADriver::incrementRunNumber()
 {
     int iRunNumber = 0;
-    getIntegerParam(P_iRunNumber, &iRunNumber);
+    g_drivers[0]->getIntegerParam(g_drivers[0]->P_iRunNumber, &iRunNumber);
     ++iRunNumber;
-    setIntegerParam(P_iRunNumber, iRunNumber);
-    setFileNames();
+    g_drivers[0]->setIntegerParam(g_drivers[0]->P_iRunNumber, iRunNumber);
+    for(auto driver : g_drivers) {
+        driver->setFileNames();
+    }
 }
 
 void CAENMCADriver::closeListFiles()
@@ -623,6 +649,18 @@ void CAENMCADriver::closeListFiles()
     } 
 }
 
+void CAENMCADriver::beginRun()
+{
+    startAcquisition(0, 3);
+}
+
+void CAENMCADriver::beginRunAll()
+{
+    for(auto driver : g_drivers) {
+        driver->beginRun();
+    }
+}
+
 void CAENMCADriver::endRun()
 {
     std::string filePrefix, title, comment, runNumber, startTime, stopTime, deviceName;
@@ -630,13 +668,16 @@ void CAENMCADriver::endRun()
     int ntrig, counts;
     int run_dur;
     double tmin, tmax;
-    getStringParam(P_filePrefix, filePrefix);
-    getStringParam(P_runTitle, title);
-    getStringParam(P_runComment, comment);
-    getStringParam(P_runNumber, runNumber);
+    g_drivers[0]->getStringParam(g_drivers[0]->P_filePrefix, filePrefix);
+    g_drivers[0]->getStringParam(g_drivers[0]->P_runTitle, title);
+    g_drivers[0]->getStringParam(g_drivers[0]->P_runComment, comment);
+    g_drivers[0]->getStringParam(g_drivers[0]->P_runNumber, runNumber);
     getStringParam(P_deviceName, deviceName);
     epicsSnprintf(filename, sizeof(filename), "%s%s_%s_info.txt", filePrefix.c_str(), runNumber.c_str(), deviceName.c_str());
     std::fstream f1, f2;
+    
+    stopAcquisition(0, 3);
+
     try {
         f1.open(filename, std::ios::out | std::ios::trunc);
         f1 << "Title: " << title << std::endl;
@@ -646,6 +687,9 @@ void CAENMCADriver::endRun()
             getStringParam(i, P_stopTime, stopTime);
             getIntegerParam(i, P_eventsSpecNTriggers, &ntrig);
             getIntegerParam(i, P_runDuration, &run_dur);
+            double scaleA = 0.0, scaleB = 0.0;
+            getDoubleParam(i, P_energySpecScaleA, &scaleA);
+            getDoubleParam(i, P_energySpecScaleB, &scaleB);
             f1 << "Channel " << i << ": StartTime: " << startTime << std::endl;
             f1 << "Channel " << i << ": StopTime: " << stopTime << std::endl;
             f1 << "Channel " << i << ": Duration: " << run_dur << " seconds" << std::endl;
@@ -660,6 +704,7 @@ void CAENMCADriver::endRun()
             getDoubleParam(i, P_eventsSpecTMin, &tmin);
             getDoubleParam(i, P_eventsSpecTMax, &tmax);
             f1 << "Channel " << i << ": EventsSpecCounts in time range (" << tmin << "," << tmax << "): " << counts << std::endl;
+            f1 << "Channel " << i << ": EnergyScale A * x + B: A=" << scaleA << ", B=" << scaleB << std::endl;
         }
         f1.close();
     }
@@ -682,19 +727,60 @@ void CAENMCADriver::endRun()
     catch(const std::exception& ex) {
         std::cerr << "Cannot write " << journal_name << ": " << ex.what() << std::endl;
     }
-    std::string old_run_number = runNumber.c_str();
-    std::vector<std::string> list_filenames(2);
-    for(int i=0; i<2; ++i) {
-        getStringParam(i, P_listFile, list_filenames[i]);
-    }
     closeListFiles();
-    incrementRunNumber();
-    cycleAcquisition(); // we briefly start and stop to force pickup of new filename so we can move old ones
-    copyData(filePrefix, old_run_number.c_str(), list_filenames);
 }    
+
+void CAENMCADriver::endRunAll()
+{
+    std::string oldRunNumber, filePrefix, copyDataArgs, dataFile;
+    g_drivers[0]->getStringParam(g_drivers[0]->P_runNumber, oldRunNumber);
+    g_drivers[0]->getStringParam(g_drivers[0]->P_filePrefix, filePrefix);
+    for(int j=0; j<g_drivers.size(); ++j) {
+        CAENMCADriver* driver = g_drivers[j];
+        driver->endRun();
+        for(int i=0; i<2; ++i) {
+            copyDataArgs += " ";
+            copyDataArgs += driver->makeCopyDataArgs(i);
+        }
+    }
+    incrementRunNumber();
+    for(auto driver : g_drivers) {
+        driver->cycleAcquisition(); // we briefly start and stop to force pickup of new filename so we can move old ones
+    }
+    dataFile = createTemplateNexusFile(filePrefix, oldRunNumber.c_str());
+    copyData(dataFile, filePrefix, oldRunNumber.c_str(), copyDataArgs);
+}
+
+std::string CAENMCADriver::makeCopyDataArgs(int addr)
+{
+    std::string list_filename, deviceName;
+    double energyScaleA = 0.0, energyScaleB = 0.0;
+    getStringParam(addr, P_listFile, list_filename);
+    getDoubleParam(addr, P_energySpecScaleA, &energyScaleA);
+    getDoubleParam(addr, P_energySpecScaleB, &energyScaleB);
+    getStringParam(P_deviceName, deviceName);
+    std::string dir_win = m_file_dir;
+    std::replace(dir_win.begin(), dir_win.end(), '/', '\\');
+    std::ostringstream args;
+    args << deviceName << " " << addr << " " << m_share_path << "\\" << dir_win;
+    auto const pos = list_filename.find_last_of("/\\");
+    std::string filename;
+    if (pos != std::string::npos) {
+        filename = list_filename.substr(pos + 1);
+    } else {
+        filename = list_filename;
+    }
+    if (filename.size() == 0) {
+	    std::cerr << "makeCopyDataArgs: No filename for channel " << addr << std::endl;
+        return "";
+    }
+    args << " " << filename << " " << energyScaleA << " " << energyScaleB;
+    return args.str();
+}
     
 // copyData() doesn't work on linux
-void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumber, const std::vector<std::string>& list_filenames)
+void CAENMCADriver::copyData(const std::string& dataFile, const std::string& filePrefix,
+                             const char* runNumber, const std::string& copyDataArgs)
 {
 	static const char* copycmd = getenv("HEXAGON_COPYCMD");
     if (copycmd == NULL) {
@@ -703,31 +789,16 @@ void CAENMCADriver::copyData(const std::string& filePrefix, const char* runNumbe
     }
     std::string copycmd_s(copycmd);
 	std::replace(copycmd_s.begin(), copycmd_s.end(), '/', '\\');
-    std::string dir_win = m_file_dir;
-    std::replace(dir_win.begin(), dir_win.end(), '/', '\\');
+    std::ostringstream args;
+    args << dataFile << " " << filePrefix << " " << runNumber << " " << copyDataArgs;
+	std::cerr << "Running \"" << copycmd_s << "\" " << args.str() << std::endl;
 #ifdef _WIN32
-    for(int i=0; i<2; ++i) {
-        std::ostringstream args;
-        args << m_share_path << "\\" << dir_win << " " << filePrefix << " " << runNumber << " " << i;
-        double scaleA = 0.0, scaleB = 0.0;
-        getDoubleParam(i, P_energySpecScaleA, &scaleA);
-        getDoubleParam(i, P_energySpecScaleB, &scaleB);
-        auto const pos = list_filenames[i].find_last_of("/\\");
-        std::string filename;
-        if (pos != std::string::npos) {
-            filename = list_filenames[i].substr(pos + 1);
-        } else {
-            filename = list_filenames[i];
-        }
-        if (filename.size() == 0) {
-	        std::cerr << "copyData: No filename for channel " << i << std::endl;
-            continue;
-        }
-        args << " " << filename << " " << scaleA << " " << scaleB;
-	    std::cerr << "Running \"" << copycmd_s << "\" " << args.str() << std::endl;
+    if (CAENMCA::simulate) {
+        std::cerr << "Not running copy command as simulation mode" << std::endl;
+    } else {
         spawnCommand(copycmd_s, args.str());
         epicsThreadSleep(1.0);
-    }
+    } 
 #endif /* _WIN32 */
 }
 
@@ -736,7 +807,33 @@ void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE handle, const char *name)
 	CAEN_MCA_HANDLE parameter = CAENMCA::GetChildHandleByName(handle, CAEN_MCA_HANDLE_PARAMETER, name);
 	getParameterInfo(parameter);
 }
-	
+
+std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix, const char* runNumber)
+{
+    char filename[256];
+    epicsSnprintf(filename, sizeof(filename), "c:\\data\\%s%s.nxs2", filePrefix.c_str(), runNumber);
+    hf::File out_file(filename, hf::File::Create | hf::File::Truncate);
+    createNeXusStructure(filename, out_file);
+    int k = 0;
+    for(auto driver : g_drivers) {
+        for(int i=0; i<2; ++i) {
+            std::string dset_name = "event_energy_y" + std::to_string(k);
+            out_file.createDataSet(dset_name, driver->m_energy_spec_event[i]);
+            std::vector<double> event_energy_x(driver->m_energy_spec_event[i].size());
+            double scaleA = 0.0, scaleB = 0.0;
+            driver->getDoubleParam(i, driver->P_energySpecScaleA, &scaleA);
+            driver->getDoubleParam(i, driver->P_energySpecScaleB, &scaleB);
+            for(int j=0; j<event_energy_x.size(); ++j) {
+                event_energy_x[j] = scaleA * j + scaleB;
+            }
+            dset_name = "event_energy_x" + std::to_string(k);
+            out_file.createDataSet(dset_name, event_energy_x);            
+            ++k;
+        }
+    }
+    return filename;
+}
+
 void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE parameter)
 {
 	std::vector<char> parameter_name(PARAMINFO_NAME_MAXLEN, '\0');
@@ -1637,6 +1734,18 @@ asynStatus CAENMCADriver::writeInt32(asynUser *pasynUser, epicsInt32 value)
 		else if (function == P_endRun)
         {
             endRun();
+        }
+		else if (function == P_endRunAll)
+        {
+            endRunAll();
+        }
+		else if (function == P_beginRun)
+		{
+			beginRun();
+		}
+		else if (function == P_beginRunAll)
+        {
+            beginRunAll();
         }
 		else if (function == P_iRunNumber)
         {
@@ -2591,7 +2700,7 @@ extern "C" {
 	{
 		try
 		{
-			new CAENMCADriver(portName, deviceAddr, deviceName);
+			g_drivers.push_back(new CAENMCADriver(portName, deviceAddr, deviceName));
 			return(asynSuccess);
 		}
 		catch (const std::exception& ex)
@@ -2627,3 +2736,61 @@ extern "C" {
 	epicsExportRegistrar(CAENMCARegister);
 }
 
+
+
+static sql::Driver* mysql_driver = NULL;
+
+void mysql_tester()
+{
+    std::string mysqlHost = "localhost";
+	try 
+	{
+        if (mysql_driver == NULL)
+        {
+	        mysql_driver = sql::mysql::get_driver_instance();
+        }
+        std::auto_ptr< sql::Connection > con(mysql_driver->connect(mysqlHost, "iocdb", "$iocdb"));
+    // the ORDER BY is to make deletes happen in a consistent primary key order, and so try and avoid deadlocks
+    // but it may not be completely right. Additional indexes have also been added to database tables.
+	    con->setAutoCommit(0); // we will create transactions ourselves via explicit calls to con->commit()
+	    con->setSchema("iocdb");
+        // use DELETE and INSERT on pvs table as we may have the same pv name from a different IOC e.g. CAENSIM and CAEN
+		std::auto_ptr< sql::PreparedStatement > pvs_dstmt(con->prepareStatement("DELETE FROM pvs WHERE pvname=?"));
+ //           pvs_dstmt->setString(1, it->first);
+//			pvs_dstmt->executeUpdate();
+ 		con->commit();
+        
+		std::auto_ptr< sql::PreparedStatement > pvs_stmt(con->prepareStatement("INSERT INTO pvs (pvname, record_type, record_desc, iocname) VALUES (?,?,?,?)"));
+		std::auto_ptr< sql::PreparedStatement > pvinfo_stmt(con->prepareStatement("INSERT INTO pvinfo (pvname, infoname, value) VALUES (?,?,?)"));
+//            pvs_stmt->setString(1, it->first);
+//            pvs_stmt->setString(2, it->second.record_type);
+//            pvs_stmt->setString(3, it->second.record_desc);
+//            pvs_stmt->setString(4, ioc_name);
+			pvs_stmt->executeUpdate();
+		con->commit();
+
+		std::auto_ptr< sql::PreparedStatement > iocenv_stmt(con->prepareStatement("INSERT INTO iocenv (iocname, macroname, macroval) VALUES (?,?,?)"));
+//		iocenv_stmt->setString(1, ioc_name);
+	    std::auto_ptr< sql::Statement > stmt(con->createStatement());
+        std::string ioc_name = "yy";
+		stmt->execute(std::string("DELETE FROM iocenv WHERE iocname='") + ioc_name + "' ORDER BY iocname,macroname");
+		std::ostringstream sql;
+        int pid = 10;
+		sql << "DELETE FROM iocrt WHERE iocname='" << ioc_name << "' OR pid=" << pid << " ORDER BY iocname"; // remove any old record from iocrt with our current pid or name
+		stmt->execute(sql.str());
+		stmt->execute(std::string("DELETE FROM pvs WHERE iocname='") + ioc_name + "' ORDER BY pvname"); // remove our PVS from last time, this will also delete records from pvinfo due to foreign key cascade action
+		con->commit();
+    }
+	catch (sql::SQLException &e) 
+	{
+        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
+	} 
+	catch (std::runtime_error &e)
+	{
+        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s\n", e.what());
+	}
+    catch(...)
+    {
+        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
+    }
+}

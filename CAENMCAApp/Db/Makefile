@@ -10,7 +10,7 @@ include $(TOP)/configure/CONFIG
 #----------------------------------------------------
 # Create and install (or just install) into <top>/db
 # databases, templates, substitutions like this
-DB += CAENMCA.db CAENMCAChan.db CAENMCAHVChan.db
+DB += CAENMCA.db CAENMCAAlias.db CAENMCADev.db CAENMCAChan.db CAENMCAHVChan.db
 DB += ADCAENMCA.template
 
 #----------------------------------------------------

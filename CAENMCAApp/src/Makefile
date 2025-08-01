@@ -22,23 +22,17 @@ else
 CAENMCALIB = $(ICPBINARYDIR)/CAENMCA/Windows
 CAENMCA_DIR = $(CAENMCALIB)/lib/$(CAENARCH)
 endif
-LIBRARY_IOC += CAENMCASup
+LIBRARY_IOC += CAENMCASup 
 
-PROD_HOST += filereader fileconverter fileconverter2
-filereader_SRC += filereader.cpp
+PROD_HOST += filereader fileconverter
+filereader_SRCS += filereader.cpp
 filereader_LIBS += $(EPICS_BASE_HOST_LIBS)
 
-fileconverter_SRC += fileconverter.cpp
+fileconverter_SRCS += fileconverter.cpp h5nexus.cpp
 #fileconverter_LIBS += hdf5_hl hdf5 szip zlib jpeg
 fileconverter_LIBS += $(LIB_LIBS)
 fileconverter_SYS_LIBS += $(LIB_SYS_LIBS)
 fileconverter_LIBS += $(EPICS_BASE_HOST_LIBS)
-
-fileconverter2_SRC += fileconverter2.cpp
-#fileconverter2_LIBS += hdf5_hl hdf5 szip zlib jpeg
-fileconverter2_LIBS += $(LIB_LIBS)
-fileconverter2_SYS_LIBS += $(LIB_SYS_LIBS)
-fileconverter2_LIBS += $(EPICS_BASE_HOST_LIBS)
 
 ifeq ($(STATIC_BUILD), NO)
     USR_CXXFLAGS_WIN32    += -DH5_BUILT_AS_DYNAMIC_LIB
@@ -54,9 +48,9 @@ endif
 DBD += CAENMCA.dbd
 
 # specify all source files to be compiled and added to the library
-CAENMCASup_SRCS += CAENMCADriver.cpp
+CAENMCASup_SRCS += CAENMCADriver.cpp h5nexus.cpp
 
-CAENMCASup_LIBS += asyn
+CAENMCASup_LIBS += $(MYSQLLIB) asyn
 CAENMCASup_LIBS += $(EPICS_BASE_IOC_LIBS)
 
 USR_CFLAGS += -I$(CAENMCALIB)/include
