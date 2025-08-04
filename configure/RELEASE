@@ -46,6 +46,10 @@ ASYN=$(SUPPORT)/asyn/master
 ONCRPC=$(SUPPORT)/oncrpc/master
 AREA_DETECTOR=$(SUPPORT)/areaDetector/master
 ADSUPPORT=$(AREA_DETECTOR)/ADSupport
+MYSQL=$(SUPPORT)/MySQL/master
+
+# this is needed for CheckFileAccess.exe
+HIDEWINDOW=$(SUPPORT)/HideWindow/master
 
 # optional extra local definitions here
 -include $(TOP)/configure/RELEASE.private

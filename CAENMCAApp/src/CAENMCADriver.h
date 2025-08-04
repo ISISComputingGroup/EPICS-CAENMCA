@@ -97,18 +97,23 @@ private:
     bool processListFile(int channel_id);
     void incrIntParam(int channel_id, int param, int incr);
     void setFileNames();
-    void incrementRunNumber();
+    static void incrementRunNumber();
     void endRun();
+    static void endRunAll();
+    void beginRun();
+    static void beginRunAll();
     void setStartTime(int chan_mask);
     void setStopTime(int chan_mask);
     std::string getEnergySpectrumFilename(int32_t channel_id, int32_t spectrum_id);
     std::string getListModeFilename(int32_t channel_id);
-    void copyData(const std::string& filePrefix, const char* runNumber, const std::vector<std::string>& list_filenames);
-    void setRunNumberFromIRunNumber();
+    std::string makeCopyDataArgs(int addr);
+    static void copyData(const std::string& dataFile, const std::string& filePrefix, const char* runNumber, const std::string& copyDataArgs);
+    static void setRunNumberFromIRunNumber();
     bool setTimingRegisters();
     bool checkTimingRegisters();
     void cycleAcquisition();
     void closeListFiles();
+    static std::string createTemplateNexusFile(const std::string& filePrefix, const char* runNumber);
 
 #define FIRST_CAEN_PARAM P_deviceName
 
@@ -175,6 +180,9 @@ private:
     int P_stopTime; // string
     int P_runDuration; // int
     int P_endRun; // int
+    int P_endRunAll; // int
+    int P_beginRun; // int
+    int P_beginRunAll; // int
     int P_eventSpecRateTMin; // float
     int P_eventSpecRateTMax; // float
     int P_eventSpecRate; // float    
@@ -309,6 +317,9 @@ private:
 #define P_stopTimeString "STOPTIME"
 #define P_runDurationString "RUNDURATION"
 #define P_endRunString "ENDRUN"
+#define P_endRunAllString "ENDRUNALL"
+#define P_beginRunString "BEGINRUN"
+#define P_beginRunAllString "BEGINRUNALL"
 #define P_eventSpecRateTMinString "EVENTSPECRATETMIN"
 #define P_eventSpecRateTMaxString "EVENTSPECRATETMAX"
 #define P_eventSpecRateString "EVENTSPECRATE"

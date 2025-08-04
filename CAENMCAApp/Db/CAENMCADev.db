@@ -1,0 +1,140 @@
+record(waveform, "$(P)$(Q)DEVICE:NAME")
+{
+    field(DESC, "Device Name")
+    field(NELM, "256")
+    field(FTVL, "CHAR")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)DEVICENAME")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
+record(waveform, "$(P)$(Q)DEVICE:ADDR")
+{
+    field(DESC, "Device Addr")
+    field(NELM, "256")
+    field(FTVL, "CHAR")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)DEVICEADDR")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+    info(archive, "VAL")
+}
+
+# start both channels on hexagon
+record(bo, "$(P)$(Q)BEGINRUN:SP")
+{
+    field(DESC, "Begin this hexagon")
+    field(ZNAM, "0")
+    field(ONAM, "1")
+    #Set the initial alarm state
+    field(UDFS, "NO_ALARM")
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),0,0)BEGINRUN")
+}
+
+record(bo, "$(P)$(Q)ABORTRUN:SP")
+{
+    field(DESC, "Abort this hexagon")
+    field(ZNAM, "0")
+    field(ONAM, "1")
+    #Set the initial alarm state
+    field(UDFS, "NO_ALARM")
+    field(FLNK, "$(P)$(Q)STOP:SP.PROC")
+}
+
+record(bo, "$(P)$(Q)_ABORTEVT")
+{
+    field(SCAN, "Event")
+    field(EVNT, "AbortRun")
+    field(DESC, "Abort a Run")
+    field(FLNK, "$(P)$(Q)ABORTRUN:SP.PROC")
+}
+
+record(bo, "$(P)$(Q)ENDRUN:SP")
+{
+    field(DESC, "End a Run")
+    field(ZNAM, "0")
+    field(ONAM, "1")
+    #Set the initial alarm state
+    field(UDFS, "NO_ALARM")
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),0,0)ENDRUN")
+}
+
+# if an individual channel calls ACQSTART / ACQSTOP it
+# will pass 0 or 1 from the bo record. Here we pass 3
+# as the mask which means both channels and will always
+# be differen to the single channel case. 
+
+record(bo, "$(P)$(Q)START:SP")
+{
+	field(FLNK, "$(P)$(Q)_START:SP")
+}
+
+record(longout, "$(P)$(Q)_START:SP")
+{
+    field(VAL, "3")
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),0,0)ACQSTART")
+}
+
+record(bo, "$(P)$(Q)STOP:SP")
+{
+	field(FLNK, "$(P)$(Q)_STOP:SP")
+}
+
+record(longout, "$(P)$(Q)_STOP:SP")
+{
+    field(VAL, "3")
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),0,0)ACQSTOP")
+}
+
+record(bo, "$(P)$(Q)RESTART:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),0,0)RESTART")
+}
+
+record(stringout, "$(P)$(Q)CONFIG:SP")
+{
+    field(DTYP, "asynOctetWrite")
+	field(OUT, "@asyn($(PORT),0,0)CONFIG")
+}
+
+record(stringin, "$(P)$(Q)CONFIG")
+{
+    field(DTYP, "asynOctetRead")
+	field(INP, "@asyn($(PORT),0,0)CONFIG")
+	field(SCAN, "I/O Intr")
+}
+
+record(waveform, "$(P)$(Q)CONFIGS")
+{
+    field(DTYP, "asynOctetRead")
+	field(INP, "@asyn($(PORT),0,0)CONFIG_AVAIL")
+	field(FTVL, "CHAR")
+	field(NELM, "512")
+	field(SCAN, "I/O Intr")
+}
+
+# are both channels running
+record(bi, "$(P)$(Q)ACQ:RUNNING")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),0,0)ACQRUNNING")
+	field(ZNAM, "No")
+	field(ONAM, "Yes")
+	field(SCAN, "I/O Intr")
+}
+
+record(bi, "$(P)$(Q)TIMEREGS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),0,0)TIMINGREGISTERS")
+	field(ZNAM, "Error")
+	field(ONAM, "OK")
+	field(SCAN, "I/O Intr")
+}
