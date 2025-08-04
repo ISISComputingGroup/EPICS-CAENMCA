@@ -58,6 +58,11 @@ USR_CPPFLAGS += -I$(CAENMCALIB)/include
 USR_INCLUDES += -I"$(AREA_DETECTOR)"
 USR_CXXFLAGS += -DNOMINMAX
 
+ifeq ($(STATIC_BUILD),YES)
+USR_CXXFLAGS += -DSTATIC_CONCPP
+endif
+
+
 # under linux we make CAENMCA a sys lib, this is so we 
 # get passed a -Wl,dynamic flag in all builds and avoids us
 # needing to provide a static library for CAENMCA. 
