@@ -1,8 +1,6 @@
-REM @echo off
+@echo off
 setlocal EnableDelayedExpansion
 set "PATH=C:\Windows\System32;C:\Windows;C:\Windows\System32\wbem"
-
-echo %*
 
 set count=0
 for %%a in (%*) do (

@@ -75,7 +75,7 @@ static void addDetector(hf::Group& parent, int index, const std::string& input_f
     }
 
     std::string group_name = std::string("detector_") + std::to_string(index+1) + "_events"; 
-    hf::Group instrument = createNeXusGroup(parent, group_name, "NXdata");
+    hf::Group instrument = createNeXusGroup(parent, group_name, "NXevent_data");
     //instrument.createAttribute<std::string>("file_name", input_filename);
     instrument.createDataSet("hexagon_filename", input_filename);
     instrument.createDataSet("hexagon_filepath", input_filedir);
