@@ -810,9 +810,15 @@ void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE handle, const char *name)
 
 std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix, const char* runNumber)
 {
-    char filename[256];
+    char filename[256], sefilename[256];
+    std::string title, comment, startTime, stopTime;
+    int ntrig, counts;
+    int run_dur;  
+    double tmin, tmax;
     static const char* datafile_suffix = (getenv("DATAFILE_SUFFIX") != NULL ? getenv("DATAFILE_SUFFIX") : ".nxs");
+    static const char* sefile_suffix = (getenv("SEFILE_SUFFIX") != NULL ? getenv("SEFILE_SUFFIX") : ".nxs");
     epicsSnprintf(filename, sizeof(filename), "c:\\data\\%s%s%s", filePrefix.c_str(), runNumber, datafile_suffix);
+    epicsSnprintf(sefilename, sizeof(sefilename), "%s%s%s", filePrefix.c_str(), runNumber, sefile_suffix);
     hf::File out_file(filename, hf::File::Create | hf::File::Truncate);
     createNeXusStructure(filename, out_file);
     int k = 1;
@@ -830,9 +836,38 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
                 event_energy_x[j] = scaleA * j + scaleB;
             }
             event_energy.createDataSet("energy", event_energy_x);            
+            driver->getIntegerParam(i, driver->P_eventsSpecNTriggers, &ntrig);
+            driver->getIntegerParam(i, driver->P_energySpecEventNEvents, &counts);
+            driver->getDoubleParam(i, driver->P_eventsSpecTMin, &tmin);
+            driver->getDoubleParam(i, driver->P_eventsSpecTMax, &tmax);
+            driver->getIntegerParam(i, driver->P_runDuration, &run_dur);
+            event_energy.createDataSet("event_time_min", tmin);
+            event_energy.createDataSet("event_time_max", tmax);
+            event_energy.createDataSet("duration", run_dur);
+            event_energy.createDataSet("num_events", counts);
+            event_energy.createDataSet("num_triggers", ntrig);
             ++k;
         }
     }
+    out_file.createExternalLink("/raw_data_1/selog", sefilename, "/raw_data_1/selog");
+    g_drivers[0]->getStringParam(0, g_drivers[0]->P_startTime, startTime);
+    g_drivers[0]->getStringParam(0, g_drivers[0]->P_stopTime, stopTime);
+    //g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_energySpecCounts, &counts);
+    g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_eventsSpecNTriggers, &ntrig);
+    g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_energySpecEventNEvents, &counts);
+    g_drivers[0]->getDoubleParam(0, g_drivers[0]->P_eventsSpecTMin, &tmin);
+    g_drivers[0]->getDoubleParam(0, g_drivers[0]->P_eventsSpecTMax, &tmax);
+    g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_runDuration, &run_dur);
+    g_drivers[0]->getStringParam(0, g_drivers[0]->P_runTitle, title);
+    g_drivers[0]->getStringParam(0, g_drivers[0]->P_runComment, comment);
+    raw_data_1.createDataSet("title", title);
+    raw_data_1.createDataSet("notes", comment);
+    raw_data_1.createDataSet("start_time", startTime);
+    raw_data_1.createDataSet("end_time", stopTime);
+    raw_data_1.createDataSet("duration", run_dur);
+    raw_data_1.createDataSet("good_frames", ntrig);
+    raw_data_1.createDataSet("raw_frames", ntrig);
+    raw_data_1.createDataSet("run_number", atoi(runNumber));    
     return filename;
 }
 
