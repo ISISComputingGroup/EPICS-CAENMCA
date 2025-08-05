@@ -26,6 +26,7 @@ $(APPNAME)_DBD += CAENMCA.dbd
 # Add all the support libraries needed by this IOC
 $(APPNAME)_LIBS += CAENMCASup
 $(APPNAME)_LIBS += asyn
+$(APPNAME)_LIBS += $(MYSQLLIB)
 
 # CAENMCATest_registerRecordDeviceDriver.cpp derives from CAENMCATest.dbd
 $(APPNAME)_SRCS += $(APPNAME)_registerRecordDeviceDriver.cpp
