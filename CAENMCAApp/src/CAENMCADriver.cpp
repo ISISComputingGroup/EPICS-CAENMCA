@@ -811,7 +811,8 @@ void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE handle, const char *name)
 std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix, const char* runNumber)
 {
     char filename[256];
-    epicsSnprintf(filename, sizeof(filename), "c:\\data\\%s%s.nxs2", filePrefix.c_str(), runNumber);
+    static const char* datafile_suffix = (getenv("DATAFILE_SUFFIX") != NULL ? getenv("DATAFILE_SUFFIX") : ".nxs");
+    epicsSnprintf(filename, sizeof(filename), "c:\\data\\%s%s%s", filePrefix.c_str(), runNumber, datafile_suffix);
     hf::File out_file(filename, hf::File::Create | hf::File::Truncate);
     createNeXusStructure(filename, out_file);
     int k = 1;
