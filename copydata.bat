@@ -19,8 +19,8 @@ CALL "%TMP%\setcycle.cmd"
 set "DSTDIR=d:\data\%CYCLE%\autoreduced"
 set "JOURNALDIR=d:\logs\journal"
 REM for testing
-set "DSTDIR=\\olympic\babylon5\scratch\freddie"
-set "JOURNALDIR=\\olympic\babylon5\scratch\freddie"
+REM set "DSTDIR=\\olympic\babylon5\scratch\freddie"
+REM set "JOURNALDIR=\\olympic\babylon5\scratch\freddie"
 
 REM copy journal files across to archive
 if not exist %JOURNALDIR% (
@@ -71,7 +71,7 @@ call %~dp0run_converter.bat %*
 @echo Moving files to %DSTDIR%
 
 REM update journal files
-robocopy "%WINTOP%\iocBoot\%IOC%" "%JOURNALDIR%" "journal_*.txt" /NJH /NJS /NP /R:2 /copy:DT
+robocopy "c:\data" "%JOURNALDIR%" "journal_*.txt" /NJH /NJS /NP /R:2 /copy:DT
 robocopy "%WINTOP%\iocBoot\%IOC%" "%DSTDIR%" "%FILEPREFIX%%RUNNUMBER%_*.*" /MOV /NJH /NJS /NP /copy:DT
 
 REM move hexagon original data files

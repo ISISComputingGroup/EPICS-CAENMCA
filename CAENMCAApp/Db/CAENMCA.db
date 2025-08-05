@@ -107,12 +107,14 @@ record(bo, "$(P)$(Q)BEGINALL:SP")
     field(UDFS, "NO_ALARM")
     field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT),0,0)BEGINRUNALL")
+    field(FLNK, "$(P)$(Q)SYNCDAE:BEGIN.PROC CA")
 }
 
 record(event, "$(P)$(Q)ABORTALL:SP")
 {
     field(DESC, "Abort all hexagons")
     field(VAL, "AbortRun")
+    field(FLNK, "$(P)$(Q)SYNCDAE:ABORT.PROC CA")
 }
 
 record(bo, "$(P)$(Q)ENDALL:SP")
@@ -124,4 +126,5 @@ record(bo, "$(P)$(Q)ENDALL:SP")
     field(UDFS, "NO_ALARM")
     field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT),0,0)ENDRUNALL")
+    field(FLNK, "$(P)$(Q)SYNCDAE:END.PROC CA")
 }

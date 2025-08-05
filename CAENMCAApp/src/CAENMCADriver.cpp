@@ -711,7 +711,7 @@ void CAENMCADriver::endRun()
     catch(const std::exception& ex) {
         std::cerr << "Cannot write " << filename << ": " << ex.what() << std::endl;
     }
-    std::string journal_name = "journal_" + deviceName + ".txt";
+    std::string journal_name = "c:\\data\\journal_" + deviceName + ".txt";
     try {
         f2.open(journal_name, std::ios::out | std::ios::app);
         for(int i=0; i<2; ++i) {
