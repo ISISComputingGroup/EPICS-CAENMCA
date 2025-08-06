@@ -816,7 +816,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
     int run_dur;  
     double tmin, tmax;
     static const char* datafile_suffix = (getenv("DATAFILE_SUFFIX") != NULL ? getenv("DATAFILE_SUFFIX") : ".nxs");
-    static const char* sefile_suffix = (getenv("SEFILE_SUFFIX") != NULL ? getenv("SEFILE_SUFFIX") : ".nxs");
+    static const char* sefile_suffix = (getenv("SEFILE_SUFFIX") != NULL ? getenv("SEFILE_SUFFIX") : ".nxs_se");
     epicsSnprintf(filename, sizeof(filename), "c:\\data\\%s%s%s", filePrefix.c_str(), runNumber, datafile_suffix);
     epicsSnprintf(sefilename, sizeof(sefilename), "%s%s%s", filePrefix.c_str(), runNumber, sefile_suffix);
     hf::File out_file(filename, hf::File::Create | hf::File::Truncate);
