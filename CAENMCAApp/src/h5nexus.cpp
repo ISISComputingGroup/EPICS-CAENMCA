@@ -32,5 +32,6 @@ void createNeXusStructure(const std::string&filename, hf::File& out_file)
     out_file.createAttribute<std::string>("file_time", "now");
     out_file.createAttribute<std::string>("NeXus_version", "0.0.0");
     hf::Group raw_data_1 = createNeXusGroup(out_file, "raw_data_1", "NXentry");
+    hf::Group instrument = createNeXusGroup(raw_data_1, "instrument", "NXinstrument");
 }
 

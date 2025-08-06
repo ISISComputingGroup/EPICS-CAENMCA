@@ -812,7 +812,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
 {
     char filename[256], sefilename[256];
     std::string title, comment, startTime, stopTime;
-    int ntrig, counts;
+    int ntrig, nevents;
     int run_dur;  
     double tmin, tmax;
     static const char* datafile_suffix = (getenv("DATAFILE_SUFFIX") != NULL ? getenv("DATAFILE_SUFFIX") : ".nxs");
@@ -823,11 +823,13 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
     createNeXusStructure(filename, out_file);
     int k = 1;
     hf::Group raw_data_1 = out_file.getGroup("raw_data_1");
+    hf::Group instrument = raw_data_1.getGroup("instrument");
     for(auto driver : g_drivers) {
         for(int i=0; i<2; ++i) {
-            std::string group_name = "detector_" + std::to_string(k) + "_energy";
-            hf::Group event_energy = createNeXusGroup(raw_data_1, group_name, "NXdata");
-            event_energy.createDataSet("counts", driver->m_energy_spec_event[i]);
+            std::string event_energy_group_name = "detector_" + std::to_string(k) + "_energy";
+            hf::Group event_energy_group = createNeXusGroup(raw_data_1, event_energy_group_name, "NXdata");
+            hf::Group detector = createNeXusGroup(instrument, "detector_" + std::to_string(k), "NXdetector");
+            hf::DataSet counts = event_energy_group.createDataSet("counts", driver->m_energy_spec_event[i]);
             std::vector<double> event_energy_x(driver->m_energy_spec_event[i].size());
             double scaleA = 0.0, scaleB = 0.0;
             driver->getDoubleParam(i, driver->P_energySpecScaleA, &scaleA);
@@ -835,26 +837,30 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             for(int j=0; j<event_energy_x.size(); ++j) {
                 event_energy_x[j] = scaleA * j + scaleB;
             }
-            event_energy.createDataSet("energy", event_energy_x);            
+            hf::DataSet event_energy = event_energy_group.createDataSet("energy", event_energy_x);
             driver->getIntegerParam(i, driver->P_eventsSpecNTriggers, &ntrig);
-            driver->getIntegerParam(i, driver->P_energySpecEventNEvents, &counts);
+            driver->getIntegerParam(i, driver->P_energySpecEventNEvents, &nevents);
             driver->getDoubleParam(i, driver->P_eventsSpecTMin, &tmin);
             driver->getDoubleParam(i, driver->P_eventsSpecTMax, &tmax);
             driver->getIntegerParam(i, driver->P_runDuration, &run_dur);
-            event_energy.createDataSet("event_time_min", tmin);
-            event_energy.createDataSet("event_time_max", tmax);
-            event_energy.createDataSet("duration", run_dur);
-            event_energy.createDataSet("num_events", counts);
-            event_energy.createDataSet("num_triggers", ntrig);
+            event_energy.createAttribute<std::string>("units", "?");
+            event_energy.createAttribute("event_time_min", tmin);
+            event_energy.createAttribute("event_time_max", tmax);
+            event_energy_group.createDataSet("event_time_min", tmin);
+            event_energy_group.createDataSet("event_time_max", tmax);
+            event_energy_group.createDataSet("duration", run_dur);
+            event_energy_group.createDataSet("num_events", nevents);
+            event_energy_group.createDataSet("num_triggers", ntrig);
+            detector.createDataSet("duration", run_dur);
             ++k;
         }
     }
     out_file.createExternalLink("/raw_data_1/selog", sefilename, "/raw_data_1/selog");
     g_drivers[0]->getStringParam(0, g_drivers[0]->P_startTime, startTime);
     g_drivers[0]->getStringParam(0, g_drivers[0]->P_stopTime, stopTime);
-    //g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_energySpecCounts, &counts);
+    //g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_energySpecCounts, &nevents);
+    g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_energySpecEventNEvents, &nevents);
     g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_eventsSpecNTriggers, &ntrig);
-    g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_energySpecEventNEvents, &counts);
     g_drivers[0]->getDoubleParam(0, g_drivers[0]->P_eventsSpecTMin, &tmin);
     g_drivers[0]->getDoubleParam(0, g_drivers[0]->P_eventsSpecTMax, &tmax);
     g_drivers[0]->getIntegerParam(0, g_drivers[0]->P_runDuration, &run_dur);
