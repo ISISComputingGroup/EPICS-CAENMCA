@@ -13,10 +13,18 @@ record(seq, "$(P)$(Q)SYNCDAE:ABORT")
 	field(LNK1, "$(P)DAE:ABORTRUN PP")
 }
 	
-record(seq, "SYNCDAE:END")
+record(seq, "$(P)$(Q)SYNCDAE:END")
 {
 	field(DO1, "1")
 	field(LNK1, "$(P)DAE:ENDRUN PP")
 #	field(DOL2, "$(P)$(Q)RUNNUMBER")
 #	field(LNK2, "$(P)DAE:RUNNUMBER:SET PP")
+}
+
+record(lso, "$(P)$(Q)SYNCDAE:TITLE")
+{
+    field(OMSL, "closed_loop")
+    field(SIZV, "512")
+    field(DOL, "$(P)$(Q)TITLE CP")
+    field(OUT, "$(P)DAE:TITLE:SP PP")
 }
