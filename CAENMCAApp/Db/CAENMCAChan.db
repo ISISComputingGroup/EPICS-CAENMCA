@@ -242,6 +242,9 @@ record(longout, "$(P)$(Q)C$(CHAN):ENERGYSPEC:NBINS:SP")
 {
     field(DTYP, "asynInt32")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECNBINS")
+#    field(VAL, "32768")
+#    field(PINI, "YES")
+#    info(autosaveFields, "VAL")
 }
 
 record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE")
@@ -312,6 +315,9 @@ record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:AUTOSAVE:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECAUTOSAVE")
 	field(PREC, 3)
 	field(EGU, "s")
+#    field(VAL, "5")
+#    field(PINI, "YES")
+#    info(autosaveFields, "VAL")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):NEVENTS")
@@ -343,6 +349,9 @@ record(bo, "$(P)$(Q)C$(CHAN):ENABLED:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)CHANENABLED")
 	field(ZNAM, "No")
 	field(ONAM, "Yes")
+    field(VAL, "1")
+    field(PINI, "YES")
+    info(autosaveFields, "VAL")
 }
 
 record(bi, "$(P)$(Q)C$(CHAN):POLARITY")
@@ -385,6 +394,9 @@ record(longout, "$(P)$(Q)C$(CHAN):LISTMODE:MAXNEVENTS:SP")
 {
     field(DTYP, "asynInt32")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)LISTMAXNEVENTS")
+#    field(VAL, "1024")
+#    field(PINI, "YES")
+#    info(autosaveFields, "VAL")
 }
 
 # if doesn't matter if we send 0 or 1, the asyn addr $(CHAN)
@@ -438,6 +450,9 @@ record(mbbo, "$(P)$(Q)C$(CHAN):LISTMODE:SP")
 	field(ONST, "Binary")
 	field(TWVL, "2")
 	field(TWST, "Memory")
+    field(PINI, "YES")
+    field(VAL, "1")
+    info(autosaveFields, "VAL")
 }
 
 record(mbbi, "$(P)$(Q)C$(CHAN):LISTMODE")
@@ -468,6 +483,9 @@ record(bo, "$(P)$(Q)C$(CHAN):LISTENABLED:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)LISTENABLED")
 	field(ZNAM, "No")
 	field(ONAM, "Yes")
+    field(PINI, "YES")
+    field(VAL, "1")
+    info(autosaveFields, "VAL")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NBINS")
@@ -480,8 +498,8 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NBINS")
 record(longout, "$(P)$(Q)C$(CHAN):EVENTSPEC:NBINS:SP")
 {
     field(DTYP, "asynInt32")
-	field(VAL, "1000")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECNBINS")
+	field(VAL, "1000")
 	field(PINI, "YES")
 	info(autosaveFields, "VAL")
 }
