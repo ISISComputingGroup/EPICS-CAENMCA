@@ -44,6 +44,7 @@ private:
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
 	std::vector<epicsInt32> m_energy_spec[2];
 	std::vector<epicsInt32> m_energy_spec_event[2];
+	std::vector<epicsInt32> m_energy_spec_event2[2];
 	std::vector<epicsInt32> m_event_spec_2d[2];
 	std::vector<epicsFloat64> m_event_spec_x[2];
 	std::vector<epicsFloat64> m_event_spec_y[2];
@@ -126,7 +127,11 @@ private:
  	int P_energySpecEvent; // int array
  	int P_energySpecEventTMin; // float
  	int P_energySpecEventTMax; // float
+ 	int P_energySpecEvent2; // int array
+ 	int P_energySpecEvent2TMin; // float
+ 	int P_energySpecEvent2TMax; // float
  	int P_energySpecEventNEvents; // int 
+ 	int P_energySpecEvent2NEvents; // int 
 	int P_energySpecCounts; // int
 	int P_energySpecNBins; // int
 	int P_energySpecFilename; // string
@@ -148,18 +153,25 @@ private:
     int P_eventsSpecNBins; // int
     int P_eventsSpecTBinWidth; // float
  	int P_eventsSpecNEvents; // int
+ 	int P_eventsSpec2Y; // double array
+ 	int P_eventsSpec2X; // double array
+ 	int P_eventsSpec2TMin; // float
+ 	int P_eventsSpec2TMax; // float
+    int P_eventsSpec2NBins; // int
+    int P_eventsSpec2TBinWidth; // float
+ 	int P_eventsSpec2NEvents; // int
  	int P_eventsSpecNTriggers; // int
  	int P_eventsSpecTriggerRate; // double
  	int P_eventsSpecNTimeTagRollover; // int
  	int P_eventsSpecNTimeTagReset; // int
  	int P_eventsSpecNEventEnergySat; // int
     int P_eventsSpecMaxEventTime; // double
-    int P_eventSpec2DTimeMin; // double
-    int P_eventSpec2DTimeMax; // double
-    int P_eventSpec2DNTimeBins; // int
-    int P_eventSpec2DTBinWidth; // double
-    int P_eventSpec2DEnergyBinGroup; // int
-    int P_eventSpec2DTransMode; // int
+    int P_eventSpec_2DTimeMin; // double
+    int P_eventSpec_2DTimeMax; // double
+    int P_eventSpec_2DNTimeBins; // int
+    int P_eventSpec_2DTBinWidth; // double
+    int P_eventSpec_2DEnergyBinGroup; // int
+    int P_eventSpec_2DTransMode; // int
 	int P_nFakeEvents; // int
 	int P_nImpDynamSatEvent; // int
 	int P_nPileupEvent; // int
@@ -204,7 +216,7 @@ private:
 	int P_listEnabled; // int
     int P_listSaveMode; // int
     int P_listMaxNEvents; // int
-    int P_listFileSize; // float
+    int P_listFileSize; // float, in MBytes
     int P_acqRunning; // int
     int P_acqRunningCh; // int
     int P_hvOn; // int
@@ -237,6 +249,10 @@ private:
 #define P_energySpecEventTMinString "ENERGYSPECEVENTTMIN"
 #define P_energySpecEventTMaxString "ENERGYSPECEVENTTMAX"
 #define P_energySpecEventNEventsString "ENERGYSPECEVENTNEVENTS"
+#define P_energySpecEvent2String "ENERGYSPECEVENT2"
+#define P_energySpecEvent2TMinString "ENERGYSPECEVENT2TMIN"
+#define P_energySpecEvent2TMaxString "ENERGYSPECEVENT2TMAX"
+#define P_energySpecEvent2NEventsString "ENERGYSPECEVENT2NEVENTS"
 #define P_energySpecClearString "ENERGYSPECCLEAR"
 #define P_energySpecCountsString "ENERGYSPECCOUNTS"
 #define P_energySpecNBinsString "ENERGYSPECNBINS"
@@ -298,16 +314,16 @@ private:
 #define P_nEventDurSatInhibitString "NEVENTDURSATINHIBIT"
 #define P_nEventNotBinnedString     "NEVENTNOTBINNED"
 #define P_nEventEnergyDiscardString "NEVENTENERGYDISCARD"
-#define P_eventSpec2DTimeMinString        "EVENTSPEC2DTIMEMIN"
-#define P_eventSpec2DTimeMaxString        "EVENTSPEC2DTIMEMAX"
-#define P_eventSpec2DNTimeBinsString      "EVENTSPEC2DNTIMEBINS"
-#define P_eventSpec2DEnergyBinGroupString       "EVENTSPEC2DENGBINGROUP"
-#define P_eventSpec2DTBinWidthString      "EVENTSPEC2DTBINW"
+#define P_eventSpec_2DTimeMinString        "EVENTSPEC_2DTIMEMIN"
+#define P_eventSpec_2DTimeMaxString        "EVENTSPEC_2DTIMEMAX"
+#define P_eventSpec_2DNTimeBinsString      "EVENTSPEC_2DNTIMEBINS"
+#define P_eventSpec_2DEnergyBinGroupString       "EVENTSPEC_2DENGBINGROUP"
+#define P_eventSpec_2DTBinWidthString      "EVENTSPEC_2DTBINW"
 #define P_loadDataFileNameString          "LOADDATAFILENAME"
 #define P_loadDataFileString              "LOADDATAFILE"
 #define P_loadDataStatusString        "LOADDATASTATUS"
 #define P_reloadLiveDataString          "RELOADLIVEDATA"
-#define P_eventSpec2DTransModeString      "EVENTSPEC2DTRANSMODE"
+#define P_eventSpec_2DTransModeString      "EVENTSPEC_2DTRANSMODE"
 #define P_runTitleString "RUNTITLE"
 #define P_runCommentString "RUNCOMMENT"
 #define P_runNumberString "RUNNUMBER"
@@ -325,6 +341,7 @@ private:
 #define P_eventSpecRateString "EVENTSPECRATE"
 #define P_timingRegisterChanString "TIMINGREGISTERCHAN"
 #define P_timingRegistersString "TIMINGREGISTERS"
+
 
 #endif /* CAENMCADRIVER_H */
 

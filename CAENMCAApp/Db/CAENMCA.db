@@ -128,3 +128,23 @@ record(bo, "$(P)$(Q)ENDALL:SP")
     field(OUT,  "@asyn($(PORT),0,0)ENDRUNALL")
     field(FLNK, "$(P)$(Q)SYNCDAE:END.PROC CA")
 }
+
+record(seq, "$(P)$(Q)ENDBEGALL:SP")
+{
+    field(SELM, "All")
+    field(LNK0, "$(P)$(Q)ENDALL:SP PP")
+    field(DLY1, "1")
+    field(LNK1, "$(P)$(Q)BEGINALL:SP PP")
+}
+
+# This must be less that 2048 MB (2GB) and enough
+# less to catch it and allow an end/begin to be executed
+# automatically
+record(ao, "$(P)$(Q)LISTFILE:SIZE:MAX:SP")
+{
+    field(VAL, "2000")
+    field(EGU, "MB")
+    field(DESC, "Max list file size")
+    field(PINI, "YES")
+    info(autosaveFields, "VAL")
+}

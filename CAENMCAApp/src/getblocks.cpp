@@ -98,7 +98,21 @@ struct stat_sev
 	stat_sev() : stat(0), sev(0) {}
 };
 
-epicsShareExtern void getBlocks()
+
+static std::string blockNameFromPV(const std::string& pv_name) {
+		// erase PV prefix - it should be e.g. IN:LARMOR:CS:SB prefix
+
+			size_t n = pv_name.find_last_of(':');
+			if (n != std::string::npos)
+			{
+				return pv_name.substr(n + 1);
+			} else {
+             return pv_name;
+            }
+}
+
+
+epicsShareExtern void getBlocks(time_t start_time, seblock_map_t& blocks)
 {
     epicsThreadSleep(30);
 	std::string mysqlHost = "localhost";
@@ -118,7 +132,7 @@ epicsShareExtern void getBlocks()
 
 	//select grp_id from chan_grp inner join smpl_eng on chan_grp.eng_id=smpl_eng.eng_id and smpl_eng.name='block_engine' and chan_grp.name='BLOCKS';
 
-
+    blocks.clear();
 	std::vector<std::string> channel_name;
 	std::vector<double> smpl_time;
 	std::vector<std::string> array_channel_name, array_smpl_time;
@@ -152,14 +166,13 @@ epicsShareExtern void getBlocks()
 	// limit query
 	std::unique_ptr< sql::ResultSet > res2{ epics_stmt2->executeQuery(stmt2_sql.str()) };
 	while (res2->next()) {
-		channel_name.push_back(res2->getString(1));
-		channel_id.push_back(res2->getInt(2));
-		sample_id.push_back(res2->getInt(3));
-		smpl_time.push_back(res2->getDouble(4));
-		nanosecs.push_back(res2->getInt(5));
-		severity_id.push_back(res2->getInt(6));
-		status_id.push_back(res2->getInt(7));
-		str_val.push_back(res2->getString(8));
+        SEBLOCK& block = blocks[blockNameFromPV(res2->getString(1))];
+		//channel_id.push_back(res2->getInt(2));
+		//sample_id.push_back(res2->getInt(3));
+		block.time.push_back(res2->getDouble(4) + ((double)res2->getInt(5) / 1e9) - start_time);
+		block.severity_id.push_back(res2->getInt(6));
+		block.status_id.push_back(res2->getInt(7));
+		block.svalues.push_back(res2->getString(8));
 	}
 
 	for (int i = 0; i < str_val.size(); ++i)
