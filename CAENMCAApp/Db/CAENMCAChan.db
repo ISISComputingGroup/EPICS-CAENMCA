@@ -334,6 +334,26 @@ record(longin, "$(P)$(Q)C$(CHAN):NEVENTSPROC")
 	field(SCAN, "I/O Intr")
 }
 
+# not fake and energy > 0 but may have energy = 32767
+# and get discarded and no time window cut
+record(longin, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTENERGYGT0")
+	field(SCAN, "I/O Intr")
+}
+
+# not fake and energy > 0 but excluding energy = 32767
+# that get discarded and no time window cut
+record(calc, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0ND")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0 CP")
+    field(INPB, "$(P)$(Q)C$(CHAN):NENGDISCARD")
+    field(CALC, "A-B")
+    field(UDFS, "NO_ALARM")
+    field(ASG, "READONLY")
+}
+
 record(bi, "$(P)$(Q)C$(CHAN):ENABLED")
 {
     field(DTYP, "asynInt32")
@@ -618,6 +638,7 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTRIG")
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTRIG")
 	field(SCAN, "I/O Intr")
+    info(alarm, "CAENMCA_01")
 }
 
 record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:TRIG:RATE")
@@ -635,69 +656,6 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NEV")
 	field(SCAN, "I/O Intr")
 }
 
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NFAKE")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NFAKEEVENTS")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NIMPDYNSAT")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NIMPDYNAMSATEVENT")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NPILEUP")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NPILEUPEVENT")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGOUTSCA")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTENERGYOUTSCA")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NDURSATINHB")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTDURSATINHIBIT")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NNOTBINNED")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTNOTBINNED")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGDISCARD")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTENERGYDISCARD")
-	field(SCAN, "I/O Intr")
-}
-
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTTROLL")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTTROLLOVER")
-	field(SCAN, "I/O Intr")
-}
-
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTTRESET")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTTRESET")
-	field(SCAN, "I/O Intr")
-}
-
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGSAT")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNENGSAT")
-	field(SCAN, "I/O Intr")
-}
 
 record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:MAXTIME")
 {
@@ -815,9 +773,12 @@ record(longin, "$(P)$(Q)C$(CHAN):RUNDURATION")
 
 record(bi, "$(P)$(Q)C$(CHAN):TIMEREG")
 {
+    field(DESC, "Hexagon Timing Register")
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)TIMINGREGISTERCHAN")
 	field(ZNAM, "Error")
+    field(ZSV, "MAJOR")
 	field(ONAM, "OK")
 	field(SCAN, "I/O Intr")
+    info(alarm, "CAENMCA_01")
 }

@@ -1,0 +1,17 @@
+
+record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:$(NAME)")
+{
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),$(CHAN),0)$(PARNAME)")
+    field(SCAN, "I/O Intr")
+}
+
+record(calc, "$(P)$(Q)C$(CHAN):EVENTSPEC:$(NAME):PC")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):EVENTSPEC:$(NAME)")
+    field(INPB, "$(P)$(Q)C$(CHAN):EVENTSPEC:$(REFCNT) CP")
+    field(CALC, "B!=0?100.0*A/B:0") 
+    field(EGU, "%")
+    field(ASG, "READONLY")
+    field(UDFS, "NO_ALARM")
+}

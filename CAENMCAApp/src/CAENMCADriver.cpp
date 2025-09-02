@@ -468,6 +468,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     createParam(P_nEventEnergyOutSCAString, asynParamInt32, &P_nEventEnergyOutSCA);
     createParam(P_nEventDurSatInhibitString, asynParamInt32, &P_nEventDurSatInhibit);
     createParam(P_nEventNotBinnedString, asynParamInt32, &P_nEventNotBinned);
+    createParam(P_nEventEnergyGt0String, asynParamInt32, &P_nEventEnergyGt0);
     createParam(P_nEventEnergyDiscardString, asynParamInt32, &P_nEventEnergyDiscard);
     createParam(P_eventSpec_2DTimeMinString, asynParamFloat64, &P_eventSpec_2DTimeMin);
     createParam(P_eventSpec_2DTimeMaxString, asynParamFloat64, &P_eventSpec_2DTimeMax);
@@ -1577,11 +1578,12 @@ void CAENMCADriver::pollerTask()
             }
         }        
         setStringParam(P_availableConfigurations, configs.c_str());        
-		callParamCallbacks(0);
         }
         catch(const std::exception& ex) {
             std::cerr << "exception in pollerTask: " << ex.what() << std::endl;
+            setParamStatus(0, P_eventsSpecNTriggers, asynError); // to flag an alarm in the DB
         }
+		callParamCallbacks(0);
 		unlock();
 		epicsThreadSleep(1.0);
 	}
@@ -2020,7 +2022,7 @@ bool CAENMCADriver::processListFile(int channel_id)
     int ntimerollover = 0, ntimereset = 0, neventenergysat = 0;
     int nfakeevent = 0, nimpdynamsatevent = 0, npileupevent = 0;
     int neventenergyoutsca = 0, neventdursatinhibit = 0;
-    int nevent2dnotbinned = 0, neventnotbinned = 0, neventenergydiscard = 0;
+    int nevent2dnotbinned = 0, neventnotbinned = 0, neventenergydiscard = 0, neventenergygt0 = 0;
     double ev_tmin = 0.0, ev_tmax = 0.0;
     FILE* save_f = NULL;
     int64_t save_event_file_last_pos = 0;
@@ -2061,6 +2063,7 @@ bool CAENMCADriver::processListFile(int channel_id)
         setIntegerParam(channel_id, P_nImpDynamSatEvent, 0);
         setIntegerParam(channel_id, P_nEventEnergyDiscard, 0);
         setIntegerParam(channel_id, P_nEventNotBinned, 0);
+        setIntegerParam(channel_id, P_nEventEnergyGt0, 0);
         std::fill(m_event_spec_y[channel_id].begin(), m_event_spec_y[channel_id].end(), 0.0);
         std::fill(m_energy_spec_event[channel_id].begin(), m_energy_spec_event[channel_id].end(), 0);
         std::fill(m_energy_spec_event2[channel_id].begin(), m_energy_spec_event2[channel_id].end(), 0);
@@ -2214,6 +2217,7 @@ bool CAENMCADriver::processListFile(int channel_id)
             if (tdiff > max_event_time) {
                 max_event_time = tdiff;
             }
+            ++neventenergygt0;
             if (energy != 32767) {
                 int n = (ev_binw != 0.0) ? ((tdiff - ev_tmin) / ev_binw) : -1;
                 if (n >= 0 && n < ev_nbins)
@@ -2269,6 +2273,7 @@ bool CAENMCADriver::processListFile(int channel_id)
     incrIntParam(channel_id, P_nEventDurSatInhibit, neventdursatinhibit);
     incrIntParam(channel_id, P_nImpDynamSatEvent, nimpdynamsatevent);
     incrIntParam(channel_id, P_nEventEnergyDiscard, neventenergydiscard);
+    incrIntParam(channel_id, P_nEventEnergyGt0, neventenergygt0);
     incrIntParam(channel_id, P_nEventNotBinned, neventnotbinned);
     if (frame > 0) {
         setDoubleParam(channel_id, P_eventSpecRate, (double)nevents_real_cr / (double)frame);

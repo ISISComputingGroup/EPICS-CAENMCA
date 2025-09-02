@@ -178,6 +178,7 @@ private:
 	int P_nEventEnergyOutSCA; // int
 	int P_nEventDurSatInhibit; // int
 	int P_nEventNotBinned; // int
+    int P_nEventEnergyGt0;
 	int P_nEventEnergyDiscard; // int
     int P_loadDataFileName; // string
     int P_loadDataFile; // int
@@ -313,6 +314,7 @@ private:
 #define P_nEventEnergyOutSCAString  "NEVENTENERGYOUTSCA"
 #define P_nEventDurSatInhibitString "NEVENTDURSATINHIBIT"
 #define P_nEventNotBinnedString     "NEVENTNOTBINNED"
+#define P_nEventEnergyGt0String     "NEVENTENERGYGT0"
 #define P_nEventEnergyDiscardString "NEVENTENERGYDISCARD"
 #define P_eventSpec_2DTimeMinString        "EVENTSPEC_2DTIMEMIN"
 #define P_eventSpec_2DTimeMaxString        "EVENTSPEC_2DTIMEMAX"
