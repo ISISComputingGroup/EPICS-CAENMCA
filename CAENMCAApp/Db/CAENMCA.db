@@ -109,8 +109,19 @@ record(bo, "$(P)$(Q)BEGINALL:SP")
     field(OUT,  "@asyn($(PORT),0,0)BEGINRUNALL")
     field(FLNK, "$(P)$(Q)SYNCDAE:BEGIN.PROC CA")
 }
+alias("$(P)$(Q)BEGINALL:SP", "$(P)$(Q)BEGINALL:SP_")
 
-record(event, "$(P)$(Q)ABORTALL:SP")
+record(bo, "$(P)$(Q)ABORTALL:SP")
+{
+    field(DESC, "Abort all hexagons")
+    field(ZNAM, "0")
+    field(ONAM, "1")
+    #Set the initial alarm state
+    field(UDFS, "NO_ALARM")
+    field(FLNK, "$(P)$(Q)ABORTALL:SP_")
+}
+
+record(event, "$(P)$(Q)ABORTALL:SP_")
 {
     field(DESC, "Abort all hexagons")
     field(VAL, "AbortRun")
@@ -128,6 +139,8 @@ record(bo, "$(P)$(Q)ENDALL:SP")
     field(OUT,  "@asyn($(PORT),0,0)ENDRUNALL")
     field(FLNK, "$(P)$(Q)SYNCDAE:END.PROC CA")
 }
+
+alias("$(P)$(Q)ENDALL:SP", "$(P)$(Q)ENDALL:SP_")
 
 record(seq, "$(P)$(Q)ENDBEGALL:SP")
 {
