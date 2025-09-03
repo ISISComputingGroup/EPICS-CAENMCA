@@ -55,18 +55,6 @@ namespace hf = HighFive;
 #include <h5nexus.h>
 
 
-// mysql
-#include <cppconn/driver.h>
-#include <cppconn/exception.h>
-#include <cppconn/warning.h>
-#include <cppconn/metadata.h>
-#include <cppconn/prepared_statement.h>
-#include <cppconn/resultset.h>
-#include <cppconn/resultset_metadata.h>
-#include <cppconn/statement.h>
-#include "mysql_driver.h"
-#include "mysql_connection.h"
-
 #include <epicsExport.h>
 
 #include "CAENMCADriver.h"
@@ -395,8 +383,8 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
 		NUM_CAEN_PARAMS,
 					0, // maxBuffers
 					0, // maxMemory
-		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask | asynDrvUserMask, /* Interface mask */
-		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask,  /* Interrupt mask */
+		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask | asynEnumMask | asynDrvUserMask, /* Interface mask */
+		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask | asynEnumMask,  /* Interrupt mask */
 		ASYN_CANBLOCK | ASYN_MULTIDEVICE, /* asynFlags.  This driver can block and is multi-device */
 		1, /* Autoconnect */
 		0, /* Default priority */
@@ -417,6 +405,10 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
 	createParam(P_energySpecEventTMinString, asynParamFloat64, &P_energySpecEventTMin);
 	createParam(P_energySpecEventTMaxString, asynParamFloat64, &P_energySpecEventTMax);
 	createParam(P_energySpecEventNEventsString, asynParamInt32, &P_energySpecEventNEvents);
+	createParam(P_energySpec2EventString, asynParamInt32Array, &P_energySpec2Event);
+	createParam(P_energySpec2EventTMinString, asynParamFloat64, &P_energySpec2EventTMin);
+	createParam(P_energySpec2EventTMaxString, asynParamFloat64, &P_energySpec2EventTMax);
+	createParam(P_energySpec2EventNEventsString, asynParamInt32, &P_energySpec2EventNEvents);
 	createParam(P_energySpecCountsString, asynParamInt32, &P_energySpecCounts);
 	createParam(P_energySpecNBinsString, asynParamInt32, &P_energySpecNBins);
     createParam(P_energySpecFilenameString, asynParamOctet, &P_energySpecFilename);
@@ -476,16 +468,17 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     createParam(P_nEventEnergyOutSCAString, asynParamInt32, &P_nEventEnergyOutSCA);
     createParam(P_nEventDurSatInhibitString, asynParamInt32, &P_nEventDurSatInhibit);
     createParam(P_nEventNotBinnedString, asynParamInt32, &P_nEventNotBinned);
+    createParam(P_nEventEnergyGt0String, asynParamInt32, &P_nEventEnergyGt0);
     createParam(P_nEventEnergyDiscardString, asynParamInt32, &P_nEventEnergyDiscard);
-    createParam(P_eventSpec2DTimeMinString, asynParamFloat64, &P_eventSpec2DTimeMin);
-    createParam(P_eventSpec2DTimeMaxString, asynParamFloat64, &P_eventSpec2DTimeMax);
-    createParam(P_eventSpec2DNTimeBinsString, asynParamInt32, &P_eventSpec2DNTimeBins);
-    createParam(P_eventSpec2DEnergyBinGroupString, asynParamInt32, &P_eventSpec2DEnergyBinGroup);
-    createParam(P_eventSpec2DTBinWidthString, asynParamFloat64, &P_eventSpec2DTBinWidth);
+    createParam(P_eventSpec_2DTimeMinString, asynParamFloat64, &P_eventSpec_2DTimeMin);
+    createParam(P_eventSpec_2DTimeMaxString, asynParamFloat64, &P_eventSpec_2DTimeMax);
+    createParam(P_eventSpec_2DNTimeBinsString, asynParamInt32, &P_eventSpec_2DNTimeBins);
+    createParam(P_eventSpec_2DEnergyBinGroupString, asynParamInt32, &P_eventSpec_2DEnergyBinGroup);
+    createParam(P_eventSpec_2DTBinWidthString, asynParamFloat64, &P_eventSpec_2DTBinWidth);
     createParam(P_loadDataFileString, asynParamInt32, &P_loadDataFile);
     createParam(P_loadDataStatusString, asynParamInt32, &P_loadDataStatus);
     createParam(P_loadDataFileNameString, asynParamOctet, &P_loadDataFileName);
-    createParam(P_eventSpec2DTransModeString, asynParamInt32, &P_eventSpec2DTransMode);
+    createParam(P_eventSpec_2DTransModeString, asynParamInt32, &P_eventSpec_2DTransMode);
     createParam(P_reloadLiveDataString, asynParamInt32, &P_reloadLiveData);
     createParam(P_runNumberString, asynParamOctet,  &P_runNumber);
     createParam(P_iRunNumberString,  asynParamInt32, &P_iRunNumber);
@@ -504,6 +497,10 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     createParam(P_eventSpecRateString, asynParamFloat64,  &P_eventSpecRate);
     createParam(P_timingRegistersString,  asynParamInt32, &P_timingRegisters);
     createParam(P_timingRegisterChanString,  asynParamInt32, &P_timingRegisterChan);
+    createParam(P_detectorNameIndexString, asynParamInt32, &P_detectorNameIndex);
+    for(int i=0; i<9; ++i) {
+        m_detNameMap[i] = std::string("GE")+std::to_string(i+1);
+    }
 
     // don't initialise P_iRunNumber as we want it to come from PINI and we also have asyn:READBACK
 
@@ -536,7 +533,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
 		status |= setDoubleParam (i, ADAcquirePeriod, .005);
 		status |= setIntegerParam(i, ADNumImages, 100);
         status |= setIntegerParam(i, ADNumImagesCounter, 0);
-        status |= setIntegerParam(i, P_eventSpec2DEnergyBinGroup, 64); // must be a valid value in Db
+        status |= setIntegerParam(i, P_eventSpec_2DEnergyBinGroup, 64); // must be a valid value in Db
         status |= setIntegerParam(i, P_loadDataFile, 0);
         status |= setIntegerParam(i, P_reloadLiveData, 0);
         status |= setIntegerParam(i, P_loadDataStatus, 0);
@@ -656,6 +653,8 @@ void CAENMCADriver::beginRun()
 
 void CAENMCADriver::beginRunAll()
 {
+    epicsGuard<CAENMCADriver> _lock0(*(g_drivers[0]));
+    epicsGuard<CAENMCADriver> _lock1(*(g_drivers[1]));
     for(auto driver : g_drivers) {
         driver->beginRun();
     }
@@ -700,6 +699,10 @@ void CAENMCADriver::endRun()
             getDoubleParam(i, P_energySpecEventTMin, &tmin);
             getDoubleParam(i, P_energySpecEventTMax, &tmax);
             f1 << "Channel " << i << ": EnergySpecCounts in time range (" << tmin << "," << tmax << "): " << counts << std::endl;
+            getIntegerParam(i, P_energySpec2EventNEvents, &counts);
+            getDoubleParam(i, P_energySpec2EventTMin, &tmin);
+            getDoubleParam(i, P_energySpec2EventTMax, &tmax);
+            f1 << "Channel " << i << ": EnergySpecCounts in time range (" << tmin << "," << tmax << "): " << counts << std::endl;
             getIntegerParam(i, P_eventsSpecNEvents, &counts);
             getDoubleParam(i, P_eventsSpecTMin, &tmin);
             getDoubleParam(i, P_eventsSpecTMax, &tmax);
@@ -732,6 +735,8 @@ void CAENMCADriver::endRun()
 
 void CAENMCADriver::endRunAll()
 {
+    epicsGuard<CAENMCADriver> _lock0(*(g_drivers[0]));
+    epicsGuard<CAENMCADriver> _lock1(*(g_drivers[1]));
     std::string oldRunNumber, filePrefix, copyDataArgs, dataFile;
     g_drivers[0]->getStringParam(g_drivers[0]->P_runNumber, oldRunNumber);
     g_drivers[0]->getStringParam(g_drivers[0]->P_filePrefix, filePrefix);
@@ -852,6 +857,9 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             event_energy_group.createDataSet("num_events", nevents);
             event_energy_group.createDataSet("num_triggers", ntrig);
             detector.createDataSet("duration", run_dur);
+            driver->getIntegerParam(i, driver->P_energySpec2EventNEvents, &nevents);
+            driver->getDoubleParam(i, driver->P_eventsSpec2TMin, &tmin);
+            driver->getDoubleParam(i, driver->P_eventsSpec2TMax, &tmax);
             ++k;
         }
     }
@@ -1555,7 +1563,8 @@ void CAENMCADriver::pollerTask()
 		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
 		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
 		    doCallbacksInt32Array(m_energy_spec_event[i].data(), m_energy_spec_event[i].size(), P_energySpecEvent, i);
-            setIntegerParam(i, P_loadDataStatus, 0);             
+		    doCallbacksInt32Array(m_energy_spec2_event[i].data(), m_energy_spec2_event[i].size(), P_energySpec2Event, i);
+            setIntegerParam(i, P_loadDataStatus, 0);
 		    callParamCallbacks(i);
 		}
         bool acqRunning = isAcqRunning();
@@ -1573,11 +1582,12 @@ void CAENMCADriver::pollerTask()
             }
         }        
         setStringParam(P_availableConfigurations, configs.c_str());        
-		callParamCallbacks(0);
         }
         catch(const std::exception& ex) {
             std::cerr << "exception in pollerTask: " << ex.what() << std::endl;
+            setParamStatus(0, P_eventsSpecNTriggers, asynError); // to flag an alarm in the DB
         }
+		callParamCallbacks(0);
 		unlock();
 		epicsThreadSleep(1.0);
 	}
@@ -1661,6 +1671,34 @@ asynStatus CAENMCADriver::readInt32(asynUser *pasynUser, epicsInt32 *value)
 	    return asynPortDriver::readInt32(pasynUser, value);
     }
 }
+
+asynStatus CAENMCADriver::readEnum(asynUser *pasynUser, char *strings[], int values[], int severities[], size_t nElements, size_t *nIn)
+{
+    int function = pasynUser->reason;
+    const char *paramName = NULL;
+	getParamName(function, &paramName);
+	int addr = 0;
+	getAddress(pasynUser, &addr);
+    *nIn =0;
+    if (function < FIRST_CAEN_PARAM) {
+        return ADDriver::readEnum(pasynUser, strings, values, severities, nElements, nIn);
+    } 
+    else if (function == P_detectorNameIndex) {
+        int i;
+        for(i=0; i<nElements && i < m_detNameMap.size(); ++i) {
+            if (strings[i]) free(strings[i]);
+            strings[i] = epicsStrDup(m_detNameMap[i].c_str());
+            values[i] = i;
+        }
+        *nIn = i;
+        return asynSuccess;
+    }
+    else {
+        return asynPortDriver::readEnum(pasynUser, strings, values, severities, nElements, nIn);
+    }
+    
+}
+
 
 asynStatus CAENMCADriver::readFloat64Array(asynUser *pasynUser, epicsFloat64 *value, size_t nElements, size_t *nIn)
 {
@@ -1952,12 +1990,12 @@ bool CAENMCADriver::processListFile(int channel_id)
 	getIntegerParam(channel_id, P_listSaveMode, &save_mode);
     getIntegerParam(channel_id, P_loadDataFile, &load_data_file);
     getIntegerParam(channel_id, P_reloadLiveData, &reload_live_data);
-    double eventSpec2d_TMin = 0.0, eventSpec2d_TMax = 0.0;
-    int eventSpec2d_nTBins = 0, eventSpec2d_engBinGroup = 1;
-	getDoubleParam(channel_id, P_eventSpec2DTimeMax, &eventSpec2d_TMax);
-	getDoubleParam(channel_id, P_eventSpec2DTimeMin, &eventSpec2d_TMin);
-	getIntegerParam(channel_id, P_eventSpec2DNTimeBins, &eventSpec2d_nTBins);
-	getIntegerParam(channel_id, P_eventSpec2DEnergyBinGroup, &eventSpec2d_engBinGroup);
+    double eventSpec_2d_TMin = 0.0, eventSpec_2d_TMax = 0.0;
+    int eventSpec_2d_nTBins = 0, eventSpec_2d_engBinGroup = 1;
+	getDoubleParam(channel_id, P_eventSpec_2DTimeMax, &eventSpec_2d_TMax);
+	getDoubleParam(channel_id, P_eventSpec_2DTimeMin, &eventSpec_2d_TMin);
+	getIntegerParam(channel_id, P_eventSpec_2DNTimeBins, &eventSpec_2d_nTBins);
+	getIntegerParam(channel_id, P_eventSpec_2DEnergyBinGroup, &eventSpec_2d_engBinGroup);
     double eventSpecRateTMin, eventSpecRateTMax;
 	getDoubleParam(channel_id, P_eventSpecRateTMin, &eventSpecRateTMin);
 	getDoubleParam(channel_id, P_eventSpecRateTMax, &eventSpecRateTMax);
@@ -2006,15 +2044,17 @@ bool CAENMCADriver::processListFile(int channel_id)
     }
     int64_t frame = 0, last_pos, current_pos = 0, new_bytes, nevents;
     m_energy_spec_event[channel_id].resize(MAX_ENERGY_BINS);
+    m_energy_spec2_event[channel_id].resize(MAX_ENERGY_BINS);
 	if (f != NULL)
 	{
 		current_pos = _ftelli64(f);
 	}
     int nevents_real_ev = 0, ev_nbins = 0, nevents_real_es = 0, nevents_real_cr = 0;
+    int nevents_real_es2 = 0;
     int ntimerollover = 0, ntimereset = 0, neventenergysat = 0;
     int nfakeevent = 0, nimpdynamsatevent = 0, npileupevent = 0;
     int neventenergyoutsca = 0, neventdursatinhibit = 0;
-    int nevent2dnotbinned = 0, neventnotbinned = 0, neventenergydiscard = 0;
+    int nevent2dnotbinned = 0, neventnotbinned = 0, neventenergydiscard = 0, neventenergygt0 = 0;
     double ev_tmin = 0.0, ev_tmax = 0.0;
     FILE* save_f = NULL;
     int64_t save_event_file_last_pos = 0;
@@ -2028,20 +2068,21 @@ bool CAENMCADriver::processListFile(int channel_id)
     setDoubleParam(channel_id, P_eventsSpecTBinWidth, ev_binw);
     m_event_spec_x[channel_id].resize(ev_nbins);
     m_event_spec_y[channel_id].resize(ev_nbins);
-    int eventSpec2d_nx = MAX_ENERGY_BINS / eventSpec2d_engBinGroup;
-    int eventSpec2d_ny = eventSpec2d_nTBins;
-	m_event_spec_2d[channel_id].resize(eventSpec2d_nx * eventSpec2d_ny);
+    int eventSpec_2d_nx = MAX_ENERGY_BINS / eventSpec_2d_engBinGroup;
+    int eventSpec_2d_ny = eventSpec_2d_nTBins;
+	m_event_spec_2d[channel_id].resize(eventSpec_2d_nx * eventSpec_2d_ny);
     double ev2d_tbinw = 0.0;
-    if (eventSpec2d_TMax > eventSpec2d_TMin && eventSpec2d_nTBins > 0) {
-        ev2d_tbinw = (eventSpec2d_TMax - eventSpec2d_TMin) / eventSpec2d_nTBins;
+    if (eventSpec_2d_TMax > eventSpec_2d_TMin && eventSpec_2d_nTBins > 0) {
+        ev2d_tbinw = (eventSpec_2d_TMax - eventSpec_2d_TMin) / eventSpec_2d_nTBins;
     }
-    setDoubleParam(channel_id, P_eventSpec2DTBinWidth, ev2d_tbinw);
+    setDoubleParam(channel_id, P_eventSpec_2DTBinWidth, ev2d_tbinw);
     if (f == NULL || load_data_file || reload_live_data || filename != m_old_list_filename[channel_id] ||
         current_pos == -1 || current_pos != m_event_file_last_pos[channel_id])
     {
         new_data = true;
         setIntegerParam(channel_id, P_nEventsProcessed, 0);
         setIntegerParam(channel_id, P_energySpecEventNEvents, 0);
+        setIntegerParam(channel_id, P_energySpec2EventNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNTriggers, 0);
         setIntegerParam(channel_id, P_eventsSpecNTimeTagRollover, 0);
@@ -2054,8 +2095,10 @@ bool CAENMCADriver::processListFile(int channel_id)
         setIntegerParam(channel_id, P_nImpDynamSatEvent, 0);
         setIntegerParam(channel_id, P_nEventEnergyDiscard, 0);
         setIntegerParam(channel_id, P_nEventNotBinned, 0);
+        setIntegerParam(channel_id, P_nEventEnergyGt0, 0);
         std::fill(m_event_spec_y[channel_id].begin(), m_event_spec_y[channel_id].end(), 0.0);
         std::fill(m_energy_spec_event[channel_id].begin(), m_energy_spec_event[channel_id].end(), 0);
+        std::fill(m_energy_spec2_event[channel_id].begin(), m_energy_spec2_event[channel_id].end(), 0);
         std::fill(m_event_spec_2d[channel_id].begin(), m_event_spec_2d[channel_id].end(), 0);
 
         std::string p_filename;
@@ -2136,9 +2179,11 @@ bool CAENMCADriver::processListFile(int channel_id)
     {
         m_event_spec_x[channel_id][i] = ev_tmin + i * ev_binw;
     }
-    double es_tmin = 0.0, es_tmax = 0.0;
+    double es_tmin = 0.0, es_tmax = 0.0, es_tmin2 = 0.0, es_tmax2 = 0.0;
     getDoubleParam(channel_id, P_energySpecEventTMin, &es_tmin);
     getDoubleParam(channel_id, P_energySpecEventTMax, &es_tmax);
+    getDoubleParam(channel_id, P_energySpec2EventTMin, &es_tmin2);
+    getDoubleParam(channel_id, P_energySpec2EventTMax, &es_tmax2);
     bool force_trigger, fake_trigger = false;
     for(int i=0; i<nevents; ++i)
     {
@@ -2204,6 +2249,7 @@ bool CAENMCADriver::processListFile(int channel_id)
             if (tdiff > max_event_time) {
                 max_event_time = tdiff;
             }
+            ++neventenergygt0;
             if (energy != 32767) {
                 int n = (ev_binw != 0.0) ? ((tdiff - ev_tmin) / ev_binw) : -1;
                 if (n >= 0 && n < ev_nbins)
@@ -2215,10 +2261,10 @@ bool CAENMCADriver::processListFile(int channel_id)
                 {
                     ++neventnotbinned;
                 }
-                n = (ev2d_tbinw != 0.0) ? ((tdiff - eventSpec2d_TMin) / ev2d_tbinw) : -1;
-                if (n >= 0 && n < eventSpec2d_nTBins)
+                n = (ev2d_tbinw != 0.0) ? ((tdiff - eventSpec_2d_TMin) / ev2d_tbinw) : -1;
+                if (n >= 0 && n < eventSpec_2d_nTBins)
                 {
-					m_event_spec_2d[channel_id][n * eventSpec2d_nx + energy / eventSpec2d_engBinGroup] += 1;
+					m_event_spec_2d[channel_id][n * eventSpec_2d_nx + energy / eventSpec_2d_engBinGroup] += 1;
                 }
                 else
                 {
@@ -2228,6 +2274,11 @@ bool CAENMCADriver::processListFile(int channel_id)
                 {
                     ++nevents_real_es;
                     ++(m_energy_spec_event[channel_id][energy]);
+                }
+                if ((es_tmin2 >= es_tmax2) || (tdiff >= es_tmin2 && tdiff <= es_tmax2))
+                {
+                    ++nevents_real_es2;
+                    ++(m_energy_spec2_event[channel_id][energy]);
                 }
                 if ((eventSpecRateTMin >= eventSpecRateTMax) ||
                     (tdiff >= eventSpecRateTMin && tdiff <= eventSpecRateTMax))
@@ -2246,6 +2297,7 @@ bool CAENMCADriver::processListFile(int channel_id)
     incrIntParam(channel_id, P_nEventsProcessed, nevents);
     incrIntParam(channel_id, P_eventsSpecNEvents, nevents_real_ev);
     incrIntParam(channel_id, P_energySpecEventNEvents, nevents_real_es);
+    incrIntParam(channel_id, P_energySpec2EventNEvents, nevents_real_es2);
     incrIntParam(channel_id, P_eventsSpecNTriggers, frame);
     incrIntParam(channel_id, P_eventsSpecNTimeTagRollover, ntimerollover);
     incrIntParam(channel_id, P_eventsSpecNTimeTagReset, ntimereset);
@@ -2256,6 +2308,7 @@ bool CAENMCADriver::processListFile(int channel_id)
     incrIntParam(channel_id, P_nEventDurSatInhibit, neventdursatinhibit);
     incrIntParam(channel_id, P_nImpDynamSatEvent, nimpdynamsatevent);
     incrIntParam(channel_id, P_nEventEnergyDiscard, neventenergydiscard);
+    incrIntParam(channel_id, P_nEventEnergyGt0, neventenergygt0);
     incrIntParam(channel_id, P_nEventNotBinned, neventnotbinned);
     if (frame > 0) {
         setDoubleParam(channel_id, P_eventSpecRate, (double)nevents_real_cr / (double)frame);
@@ -2307,11 +2360,11 @@ void CAENMCADriver::updateAD(int addr, bool new_data)
     double elapsedTime;
     static std::vector<int> old_acquiring(maxAddr, 0);
 	static std::vector<epicsTimeStamp> last_update(maxAddr, {0,0});
-    int eventSpec2d_nTBins = 0, eventSpec2d_engBinGroup = 1;
-    getIntegerParam(addr, P_eventSpec2DEnergyBinGroup, &eventSpec2d_engBinGroup);
-    getIntegerParam(addr, P_eventSpec2DNTimeBins, &eventSpec2d_nTBins);
-    int eventSpec2d_nx = MAX_ENERGY_BINS / eventSpec2d_engBinGroup;
-    int eventSpec2d_ny = eventSpec2d_nTBins;
+    int eventSpec_2d_nTBins = 0, eventSpec_2d_engBinGroup = 1;
+    getIntegerParam(addr, P_eventSpec_2DEnergyBinGroup, &eventSpec_2d_engBinGroup);
+    getIntegerParam(addr, P_eventSpec_2DNTimeBins, &eventSpec_2d_nTBins);
+    int eventSpec_2d_nx = MAX_ENERGY_BINS / eventSpec_2d_engBinGroup;
+    int eventSpec_2d_ny = eventSpec_2d_nTBins;
 			try 
 			{
 				acquiring = 0;
@@ -2340,7 +2393,7 @@ void CAENMCADriver::updateAD(int addr, bool new_data)
 				setShutter(addr, ADShutterOpen);
 				callParamCallbacks(addr, addr);
 				
-				status = computeImage(addr, m_event_spec_2d[addr], eventSpec2d_nx, eventSpec2d_ny);
+				status = computeImage(addr, m_event_spec_2d[addr], eventSpec_2d_nx, eventSpec_2d_ny);
 
 	//            if (status) continue;
 
@@ -2677,7 +2730,7 @@ int CAENMCADriver::computeArray(int addr, const std::vector<epicsTypeIn>& data, 
     status = getDoubleParam (ADGain,        &gain);
     status = getIntegerParam(NDColorMode,   &colorMode);
     status = getDoubleParam (ADAcquireTime, &exposureTime);
-    status = getIntegerParam(addr, P_eventSpec2DTransMode, &trans_mode);
+    status = getIntegerParam(addr, P_eventSpec_2DTransMode, &trans_mode);
 
 
     switch (colorMode) {
@@ -2779,510 +2832,3 @@ extern "C" {
 	epicsExportRegistrar(CAENMCARegister);
 }
 
-
-
-static sql::Driver* mysql_driver = NULL;
-
-void mysql_tester()
-{
-    std::string mysqlHost = "localhost";
-	try 
-	{
-        if (mysql_driver == NULL)
-        {
-	        mysql_driver = sql::mysql::get_driver_instance();
-        }
-        std::auto_ptr< sql::Connection > con(mysql_driver->connect(mysqlHost, "iocdb", "$iocdb"));
-    // the ORDER BY is to make deletes happen in a consistent primary key order, and so try and avoid deadlocks
-    // but it may not be completely right. Additional indexes have also been added to database tables.
-	    con->setAutoCommit(0); // we will create transactions ourselves via explicit calls to con->commit()
-	    con->setSchema("iocdb");
-        // use DELETE and INSERT on pvs table as we may have the same pv name from a different IOC e.g. CAENSIM and CAEN
-		std::auto_ptr< sql::PreparedStatement > pvs_dstmt(con->prepareStatement("DELETE FROM pvs WHERE pvname=?"));
- //           pvs_dstmt->setString(1, it->first);
-//			pvs_dstmt->executeUpdate();
- 		con->commit();
-        
-		std::auto_ptr< sql::PreparedStatement > pvs_stmt(con->prepareStatement("INSERT INTO pvs (pvname, record_type, record_desc, iocname) VALUES (?,?,?,?)"));
-		std::auto_ptr< sql::PreparedStatement > pvinfo_stmt(con->prepareStatement("INSERT INTO pvinfo (pvname, infoname, value) VALUES (?,?,?)"));
-//            pvs_stmt->setString(1, it->first);
-//            pvs_stmt->setString(2, it->second.record_type);
-//            pvs_stmt->setString(3, it->second.record_desc);
-//            pvs_stmt->setString(4, ioc_name);
-			pvs_stmt->executeUpdate();
-		con->commit();
-
-		std::auto_ptr< sql::PreparedStatement > iocenv_stmt(con->prepareStatement("INSERT INTO iocenv (iocname, macroname, macroval) VALUES (?,?,?)"));
-//		iocenv_stmt->setString(1, ioc_name);
-	    std::auto_ptr< sql::Statement > stmt(con->createStatement());
-        std::string ioc_name = "yy";
-		stmt->execute(std::string("DELETE FROM iocenv WHERE iocname='") + ioc_name + "' ORDER BY iocname,macroname");
-		std::ostringstream sql;
-        int pid = 10;
-		sql << "DELETE FROM iocrt WHERE iocname='" << ioc_name << "' OR pid=" << pid << " ORDER BY iocname"; // remove any old record from iocrt with our current pid or name
-		stmt->execute(sql.str());
-		stmt->execute(std::string("DELETE FROM pvs WHERE iocname='") + ioc_name + "' ORDER BY pvname"); // remove our PVS from last time, this will also delete records from pvinfo due to foreign key cascade action
-		con->commit();
-    }
-	catch (sql::SQLException &e) 
-	{
-        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s (MySQL error code: %d, SQLState: %s)\n", e.what(), e.getErrorCode(), e.getSQLStateCStr());
-	} 
-	catch (std::runtime_error &e)
-	{
-        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: %s\n", e.what());
-	}
-    catch(...)
-    {
-        errlogSevPrintf(errlogMinor, "pvdump: MySQL ERR: FAILED TRYING TO WRITE TO THE ISIS PV DB\n");
-    }
-}
-
-#if 0
-
-#include <mutex>
-
-#include "boost/algorithm/string/join.hpp"
-#include <boost/algorithm/string.hpp>
-
-
-using namespace std::string_literals; // enable s suffix for std::string literals
-
-
-
-
-        if (mysql_driver == NULL)
-        {
-	        mysql_driver = sql::mysql::get_driver_instance();
-        }
-        std::auto_ptr< sql::Connection > con_archive(mysql_driver->connect(mysqlHost, "report", "$report"));
-    // the ORDER BY is to make deletes happen in a consistent primary key order, and so try and avoid deadlocks
-    // but it may not be completely right. Additional indexes have also been added to database tables.
-	    con_archive->setAutoCommit(0); // we will create transactions ourselves via explicit calls to con->commit()
-	    con_archive->setSchema("archive");
-        std::auto_ptr< sql::Connection > con_msg(mysql_driver->connect(mysqlHost, "msg_report", "$msg_report")); // for putlog
-    // the ORDER BY is to make deletes happen in a consistent primary key order, and so try and avoid deadlocks
-    // but it may not be completely right. Additional indexes have also been added to database tables.
-	    con_archive->setAutoCommit(0); // we will create transactions ourselves via explicit calls to con->commit()
-	    con_archive->setSchema("msg_log");
-
-
-
-//select eng_id from smpl_engine where name='inst_engine' 'block_engine'
-//select grp_id from chan_grp where eng_id= and name='BLOCKS' 'INST'
-//select channel_id,name,descr from channel where grp_id=
-
-//select grp_id from chan_grp inner join smpl_eng on chan_grp.eng_id=smpl_eng.eng_id and smpl_eng.name='block_engine' and chan_grp.name='BLOCKS';
-
-static std::map<int, std::string> g_status_map;
-static std::map<int, std::string> g_severity_map;
-static std::mutex g_sev_stat_mutex;
-
-#define LOG_MESSAGE(type,args) \
-    { std::ostringstream oss; oss << args; icp_data->log_func(icp_data->log_arg, type, oss.str().c_str()); }
-
-static void create_lookup(sql::Connection& session, std::map<int, std::string>& table, const std::string& table_name, 
-	                      const std::string& id_col, const std::string& name_col)
-{
-	using namespace Poco::Data;
-	Statement stmt(session);
-	std::vector<int> id;
-	std::vector<std::string> name;
-	stmt << "SELECT " << id_col << "," << name_col << " FROM " << table_name, into(id), into(name);
-	stmt.execute();
-	if (id.size() > 0)
-	{
-		std::lock_guard<std::mutex> _guard(g_sev_stat_mutex);
-		table.clear();
-		for (int i = 0; i < id.size(); ++i)
-		{
-			table[id[i]] = name[i];
-		}
-	}
-}
-
-static std::string print_lookup(const std::map<int, std::string>& table, int id, const std::string& error_type)
-{
-	std::lock_guard<std::mutex> _guard(g_sev_stat_mutex);
-	std::map<int, std::string>::const_iterator it;
-	if ( (it = table.find(id)) == table.cend() )
-	{
-		return error_type + "_" + std::to_string(id);
-	}
-	else
-	{
-		return error_type + "_" + it->second;
-	}
-}
-
-int __stdcall se_get_severity_status_map(std::map<int, std::string>& severity_map, std::map<int, std::string>& status_map)
-{
-	std::lock_guard<std::mutex> _guard(g_sev_stat_mutex);
-	severity_map = g_severity_map;
-	status_map = g_status_map;
-	return 0;
-}
-
-struct stat_sev 
-{
-	int stat;
-	int sev;
-	stat_sev() : stat(0), sev(0) {}
-};
-
-unsigned __stdcall run_epics_db(void* arg)
-{
-	using namespace Poco::Data;
-	std::vector<std::string> channel_name, smpl_time, putlog_time, putlog_msg;
-	std::vector<std::string> array_channel_name, array_smpl_time;
-	std::vector<std::string> str_val;
-	std::vector<int> channel_id, array_channel_id, status_id, array_status_id, severity_id, array_severity_id;
-	std::vector<Poco::Data::CLOB> putlog_msg_blob;
-	std::vector<Poco::Data::BLOB> array_val_blob;
-	std::vector<unsigned> nanosecs, array_nanosecs, putlog_id;
-	std::vector<uint64_t> sample_id, array_sample_id;
-	std::map<std::string, stat_sev> chan_stat_sev;
-	std::map<std::string, std::string> channel_units_map;
-	unsigned nrows, array_nrows;
-	epics_thread_data_t* icp_data = (epics_thread_data_t*)arg;
-	bool in_retry = false;
-	bool singlelogfile = Poco::Util::Application::instance().config().getBool("isisicp.epicsdb.singlelogfile", true);
-    std::string sepblocklogs = Poco::Util::Application::instance().config().getString("isisicp.epicsdb.sepblocklogs", "");
-	bool alarmindotlog = Poco::Util::Application::instance().config().getBool("isisicp.epicsdb.alarm.indotlog", false);
-	bool alarmexcludedisconnected = Poco::Util::Application::instance().config().getBool("isisicp.epicsdb.alarm.excludedisconnected", true);
-	bool alarmexcludearchiveoff = Poco::Util::Application::instance().config().getBool("isisicp.epicsdb.alarm.excludearchiveoff", true);
-	std::vector<std::string> alarm_excludes_vec;
-	std::vector<std::string> sepblocklogslist;
-	boost::split(sepblocklogslist, sepblocklogs, boost::is_any_of(","));
-
-	if (alarmexcludedisconnected)
-	{
-		alarm_excludes_vec.push_back("'Disconnected'");
-	}
-	if (alarmexcludearchiveoff)
-	{
-		alarm_excludes_vec.push_back("'Archive_Off'");
-	}
-	std::string alarm_excludes = boost::algorithm::join(alarm_excludes_vec, ",");
-	while(true)
-	{
-		try
-		{
-			Session archive_session(archive_session_pool.get()->get());
-			Session msglog_session(msglog_session_pool.get()->get());
-			LOG_MESSAGE(0, "EPICSDB: (Re)connected MSQL session");
-			in_retry = false;
-			while( archive_session.isConnected() && msglog_session.isConnected() )
-			{
-				int run_number = *(icp_data->run_number);
-				smpl_time.clear();
-				array_smpl_time.clear();
-				channel_name.clear();
-				channel_id.clear();
-				array_channel_name.clear();
-				array_channel_id.clear();
-				str_val.clear();
-				nanosecs.clear();
-				array_nanosecs.clear();
-				putlog_msg_blob.clear();
-				array_val_blob.clear();
-				putlog_time.clear();
-				putlog_id.clear();
-				status_id.clear();
-				array_status_id.clear();
-				severity_id.clear();
-				array_severity_id.clear();
-				sample_id.clear();
-				array_sample_id.clear();
-				try
-				{
-					Statement epics_stmt1(archive_session), epics_stmt2(archive_session), epics_stmt3(archive_session), epics_stmt4(archive_session);
-					int grp_id; // group id for where SECI like block PVs will go - we need to check this each time as it changhes when new blocks are loaded
-					uint64_t last_sample_id = 0;
-					epics_stmt3 << "SELECT sample_id FROM sample ORDER BY sample_id DESC LIMIT 1", into(last_sample_id);
-					epics_stmt3.execute();
-					epics_stmt1 << "SELECT grp_id FROM chan_grp INNER JOIN smpl_eng ON chan_grp.eng_id=smpl_eng.eng_id AND smpl_eng.name='block_engine' AND chan_grp.name='BLOCKS'", into(grp_id);
-					epics_stmt1.execute();
-					if ( (*(icp_data->last_sample_id) == 0) || // assume control program rebuild and restart
-						 (*(icp_data->last_sample_id) > last_sample_id) ) // assume new database table which resets sample_id
-					{
-						*(icp_data->last_sample_id) = last_sample_id; 
-					}
-				    // poco 1.4 doesn't support mysql TIMESTAMP field, hence DATE_FORMAT operator to convert to string
-					// when EPICS archiver is restarted, we can get a stream of NULL values followed bythe  real values, hence "is not null"
-					epics_stmt2 << "SELECT * FROM (SELECT channel.name, channel.channel_id, sample_id, DATE_FORMAT(smpl_time, '%Y-%m-%dT%H:%i:%s'), nanosecs, severity_id, status_id, COALESCE(num_val, float_val, str_val) AS val " 
-						        << " FROM channel INNER JOIN sample ON (channel.channel_id=sample.channel_id) "
-								<< " AND (grp_id=" << grp_id << ") AND (sample_id > " << *(icp_data->last_sample_id) << ") AND (array_val IS NULL) " // datatype column only set for arrays
-						        << " ORDER BY smpl_time, nanosecs) sub WHERE sub.val IS NOT NULL"
-						        << (alarm_excludes.size() > 0 ? " AND CAST(sub.val AS CHAR) NOT IN ("s + alarm_excludes + ")" : ""s),
-						       into(channel_name), into(channel_id), into(sample_id), into(smpl_time), into(nanosecs), into(severity_id), into(status_id), into(str_val), limit(500);
-					nrows = epics_stmt2.execute();
-					while( !epics_stmt2.done() )
-					{
-						Poco::Thread::sleep(100);
-						nrows += epics_stmt2.execute();
-					}
-					for (int i = 0; i < str_val.size(); ++i)
-					{
-						if ( !stricmp(str_val[i].c_str(), "Disconnected") || !stricmp(str_val[i].c_str(), "Archive_Off") )
-						{
-							str_val[i] = "0"; // we are in alarm so value does not matter, but we do not know value data type so use "0" as valid for both numeric and string
-						}
-					}
-					epics_stmt4 << "SELECT channel.name, channel.channel_id, sample_id, DATE_FORMAT(smpl_time, '%Y-%m-%dT%H:%i:%s'), nanosecs, severity_id, status_id, array_val "
-						<< " FROM channel INNER JOIN sample ON (channel.channel_id=sample.channel_id) "
-						<< " AND (grp_id=" << grp_id << ") AND (sample_id > " << *(icp_data->last_sample_id) << ") AND (array_val IS NOT NULL) AND (datatype='d') "
-						<< " ORDER BY smpl_time, nanosecs", into(array_channel_name), into(array_channel_id), into(array_sample_id), into(array_smpl_time), into(array_nanosecs), into(array_severity_id), 
-						     into(array_status_id), into(array_val_blob), limit(500);
-					array_nrows = epics_stmt4.execute();
-					while( !epics_stmt4.done() )
-					{
-						Poco::Thread::sleep(100);
-						array_nrows += epics_stmt4.execute();
-					}
-					// the archive engine can dynamically add new status/severity entries, so we need to check table each time
-					create_lookup(archive_session, g_status_map, "status", "status_id", "name");
-					create_lookup(archive_session, g_severity_map, "severity", "severity_id", "name");
-
-					if (smpl_time.size() > 0)
-					{
-						strcpy(icp_data->lastread_iso, smpl_time.back().c_str());
-						*(icp_data->lastread_nano) = nanosecs.back();
-						*(icp_data->last_sample_id) = *std::max_element(sample_id.begin(), sample_id.end());
-						// erase PV prefix - it should be e.g. IN:LARMOR:CS:SB prefix
-						for (int i = 0; i < channel_name.size(); ++i)
-						{
-							size_t n = channel_name[i].find_last_of(':');
-							if (n != std::string::npos)
-							{
-								channel_name[i].erase(0, n + 1);
-							}
-						}
-						channel_units_map.clear();
-						int chan_id;
-						std::string units;
-						Statement epics_units_stmt(archive_session);
-						epics_units_stmt << "SELECT unit FROM num_metadata WHERE channel_id=?", use(chan_id), into(units);
-						for (int i = 0; i < channel_name.size(); ++i) {
-							if (channel_units_map.find(channel_name[i]) == channel_units_map.end()) {
-								chan_id = channel_id[i];
-								units = ""; // query may not find any units, so set to blank first
-								epics_units_stmt.execute();
-								channel_units_map[channel_name[i]] = units;
-							}
-						}
-						se_set_block_units_m(channel_units_map);
-						if (se_log_values(run_number, "EPICS", smpl_time, channel_name, str_val, severity_id, status_id) != 0)
-						{
-							LOG_MESSAGE(2, "EPICSDB: error logging values " << se_get_errmsg());
-						}
-						std::string log_file = std::string("c:\\data\\") + icp_data->file_prefix + padWithZeros(run_number, icp_data->run_digits) + ".log";
-						std::string alarm_file = std::string("c:\\data\\") + icp_data->file_prefix + padWithZeros(run_number, icp_data->run_digits) + "_ICPalarm.txt";
-						std::fstream flog, falarm;
-						std::map<std::string, std::fstream> fmap;
-						std::map<std::string, std::fstream>::iterator fiter;
-						flog.open(log_file, std::ios::app);
-						falarm.open(alarm_file, std::ios::app);
-						if (flog.good())
-						{
-							for (int i = 0; i < smpl_time.size(); ++i)
-							{
-								if (severity_id[i] != 4 || alarmindotlog)
-								{
-									flog << smpl_time[i] << "\t" << channel_name[i] << "\t" << str_val[i];
-									if (alarmindotlog)
-									{
-										flog << "\t" << print_lookup(g_status_map, status_id[i], "STAT") << "\t" << print_lookup(g_severity_map, severity_id[i], "SEVR");
-									}
-									flog << std::endl;
-								}
-								if (severity_id[i] != chan_stat_sev[channel_name[i]].sev || status_id[i] != chan_stat_sev[channel_name[i]].stat)
-								{
-									falarm << smpl_time[i] << "\t" << channel_name[i]
-										<< "\tSTAT=" << print_lookup(g_status_map, status_id[i], "STAT")
-										<< "\tSEVR=" << print_lookup(g_severity_map, severity_id[i], "SEVR")
-										<< std::endl;
-								}
-								// SECI used to create a Status.txt file - if we have a block called Status then create this file for compatibility
-								if (!singlelogfile || channel_name[i] == "Status")
-								{
-									if ( sepblocklogslist.size() == 0 || 
-										 std::find(sepblocklogslist.begin(), sepblocklogslist.end(), channel_name[i]) != sepblocklogslist.end() )
-									{
-										if ((fiter = fmap.find(channel_name[i])) == fmap.end())
-										{
-											std::fstream& ff = fmap[channel_name[i]];
-											std::string fname = std::string("c:\\data\\") + icp_data->file_prefix + padWithZeros(run_number, icp_data->run_digits) + "_" + channel_name[i] + ".txt";
-											ff.open(fname, std::ios::app);
-											fiter = fmap.find(channel_name[i]);
-										}
-										if (fiter->second.good())
-										{
-											fiter->second << smpl_time[i] << "\t" << str_val[i] << std::endl;
-										}
-									}
-								}
-								chan_stat_sev[channel_name[i]].sev = severity_id[i];
-								chan_stat_sev[channel_name[i]].stat = status_id[i];
-							}
-							flog.close();
-						}
-						if (falarm.good())
-						{
-							falarm.close();
-						}
-					}
-					if (array_smpl_time.size() > 0)
-					{
-						uint64_t max_sid = *std::max_element(array_sample_id.begin(), array_sample_id.end());
-						if ( max_sid > *(icp_data->last_sample_id) )
-						{
-							strcpy(icp_data->lastread_iso, array_smpl_time.back().c_str());
-							*(icp_data->lastread_nano) = array_nanosecs.back();
-							*(icp_data->last_sample_id) = max_sid;
-						}
-						// erase PV prefix - it should be e.g. IN:LARMOR:CS:SB prefix
-						for(int i=0; i<array_channel_name.size(); ++i)
-						{
-							size_t n = array_channel_name[i].find_last_of(':');
-							if (n != std::string::npos)
-							{
-								array_channel_name[i].erase(0, n+1);
-							}
-						}
-						std::vector<const unsigned char*> blob_ptr(array_nrows);
-						std::vector<size_t> blob_size(array_nrows);
-						for (int i = 0; i < array_nrows; ++i)
-						{
-							blob_ptr[i] = array_val_blob[i].rawContent();
-							blob_size[i] = array_val_blob[i].size();
-						}
-						if (se_log_blob_values(run_number, "EPICS", array_smpl_time, array_channel_name, blob_ptr, blob_size, 
-							    array_severity_id, array_status_id) != 0)
-						{
-							LOG_MESSAGE(2, "EPICSDB: error logging blob " << se_get_errmsg());
-						}
-						std::string log_file = std::string("c:\\data\\") + icp_data->file_prefix + padWithZeros(run_number, icp_data->run_digits) + "_array.log";
-						std::fstream f;
-						f.open(log_file, std::ios::app);
-						if (f.good())
-						{
-							for(int i=0; i<array_smpl_time.size(); ++i)
-							{
-								if (array_severity_id[i] == 4 && !alarmindotlog)
-								{
-									continue;
-								}
-								const unsigned char* blob_data = array_val_blob[i].rawContent();
-								uint32_t array_size = ntohl(*(uint32_t*)blob_data);
-								double* array_data_be = (double*)(blob_data + sizeof(uint32_t));
-								if ( array_val_blob[i].size() != (sizeof(uint32_t) + array_size * sizeof(double)) )
-								{
-									f << array_smpl_time[i] << "\t" << array_channel_name[i] << "\t" << "ERROR" << std::endl;
-									continue; // error
-								}
-								f << array_smpl_time[i] << "\t" << array_channel_name[i] << "\t";
-								if (alarmindotlog)
-								{
-									f << print_lookup(g_status_map, status_id[i], "STAT") << "\t" << print_lookup(g_severity_map, severity_id[i], "SEVR") << "\t";
-								}
-								f << array_size << "\t";
-								unsigned n = std::min(array_size, 6u);
-								for (int j = 0; j < n; ++j)
-								{
-									f << swapEndianDouble(array_data_be + j) << (j < n - 1 ? "," : "");
-								}
-								f << std::endl;
-							}
-							f.close();
-						}
-					}
-					Statement putlog_stmt1(msglog_session), putlog_stmt2(msglog_session);
-					unsigned last_putlog_id = 0;
-					// alternative would be MAX(id), this is either better or the same
-					putlog_stmt2 << "SELECT id FROM message ORDER BY id DESC LIMIT 1", into(last_putlog_id);
-					putlog_stmt2.execute();
-					// check for program restart or database table cleanout
-					if ( *(icp_data->last_putlog_id) == 0 || *(icp_data->last_putlog_id) > last_putlog_id )
-					{
-						*(icp_data->last_putlog_id) = last_putlog_id;
-					}
-					putlog_stmt1 << "SELECT id, DATE_FORMAT(eventTime, '%Y-%m-%dT%H:%i:%s'), contents FROM message WHERE (type_id = 1) AND " <<
-						    " (id > " << *(icp_data->last_putlog_id) << ") ORDER BY id", into(putlog_id), into(putlog_time), into(putlog_msg_blob), limit(500);
-					nrows = putlog_stmt1.execute();
-					while( !putlog_stmt1.done() )
-					{
-						Poco::Thread::sleep(100);
-						nrows += putlog_stmt1.execute();
-					}
-					if (putlog_time.size() > 0)
-					{
-						putlog_msg.clear();
-						putlog_msg.reserve(putlog_msg_blob.size());
-						for(int i=0; i<putlog_msg_blob.size(); ++i)
-						{
-							std::string ps(putlog_msg_blob[i].rawContent(), putlog_msg_blob[i].size());
-							for(int j=0; j<ps.size(); ++j)
-							{
-								unsigned char c = ps[j];
-								if (!(isascii(c) && (isprint(c) || isspace(c))))
-								{
-									ps[j] = '?';
-								}
-							}
-							if (ps.size() > 0)
-							{
-								putlog_msg.push_back(ps);
-							}
-							else
-							{
-								putlog_msg.push_back("(EMPTY)");
-							}
-						}
-						*(icp_data->last_putlog_id) = putlog_id.back(); // as we "ORDER BY id" this is OK
-						channel_name.resize(putlog_time.size());
-						std::fill(channel_name.begin(), channel_name.end(), "EPICS_PUTLOG");
-						status_id.resize(0); // these need to be 0 size (for default status/severity) or the same size as other arrays
-						severity_id.resize(0);
-						if (se_log_values(run_number, "EPICS", putlog_time, channel_name, putlog_msg,
-							severity_id, status_id) != 0)
-						{
-							LOG_MESSAGE(2, "EPICSDB: error logging putlog " << se_get_errmsg());
-						}
-						std::string log_file = std::string("c:\\data\\") + icp_data->file_prefix + padWithZeros(run_number, icp_data->run_digits) + "_ICPputlog.txt";
-						std::fstream f;
-						f.open(log_file, std::ios::app);
-						if (f.good())
-						{
-							for(int i=0; i<putlog_time.size(); ++i)
-							{
-								f << putlog_time[i] << "\t" << putlog_msg[i] << std::endl;
-							}
-							f.close();
-						}
-					}
-				}
-				catch(const std::exception& ex)
-				{
-					LOG_MESSAGE(2, "EPICSDB: error executing statement " << ex.what());
-				}
-				icp_data->poll_done_event.set();
-				// wait 3 seconds, or until we are signalled
-				icp_data->poll_do_event.tryWait(3000);
-				icp_data->poll_done_event.reset();
-			}
-			LOG_MESSAGE(1, "EPICSDB: MySQL session has disconnected, will retry in 30 seconds");
-		}
-		catch(const std::exception& ex)
-		{
-			if (!in_retry)
-			{
-				in_retry = true;
-				LOG_MESSAGE(2, "EPICSDB: Error creating EPICS MySQL session: " << ex.what() << ", will attempt to retry every 30 seconds");
-			}
-		}
-		Poco::Thread::sleep(30000);
-	}
-}
-
-#endif

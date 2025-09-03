@@ -47,7 +47,7 @@ ONCRPC=$(SUPPORT)/oncrpc/master
 AREA_DETECTOR=$(SUPPORT)/areaDetector/master
 ADSUPPORT=$(AREA_DETECTOR)/ADSupport
 MYSQL=$(SUPPORT)/MySQL/master
-
+BOOST=$(EPICS_ROOT)/libraries/master/boost
 # this is needed for CheckFileAccess.exe
 HIDEWINDOW=$(SUPPORT)/HideWindow/master
 

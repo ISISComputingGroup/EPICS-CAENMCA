@@ -1,0 +1,9 @@
+
+global {
+    P=\$(P),Q=\$(Q),CHAN=\$(CHAN)
+}
+
+
+pattern{ID}
+{ "" }
+{ "2" }

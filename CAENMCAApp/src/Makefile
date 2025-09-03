@@ -24,15 +24,18 @@ CAENMCA_DIR = $(CAENMCALIB)/lib/$(CAENARCH)
 endif
 LIBRARY_IOC += CAENMCASup 
 
-PROD_HOST += filereader fileconverter
+PROD_HOST += filereader fileconverter getblocks_main
 filereader_SRCS += filereader.cpp
 filereader_LIBS += $(EPICS_BASE_HOST_LIBS)
 
-fileconverter_SRCS += fileconverter.cpp h5nexus.cpp
+fileconverter_SRCS += fileconverter.cpp h5nexus.cpp getblocks.cpp
 #fileconverter_LIBS += hdf5_hl hdf5 szip zlib jpeg
 fileconverter_LIBS += $(LIB_LIBS)
 fileconverter_SYS_LIBS += $(LIB_SYS_LIBS)
-fileconverter_LIBS += $(EPICS_BASE_HOST_LIBS)
+fileconverter_LIBS += $(MYSQLLIB) $(EPICS_BASE_HOST_LIBS)
+
+getblocks_main_SRCS += getblocks_main.cpp getblocks.cpp
+getblocks_main_LIBS += $(MYSQLLIB) $(EPICS_BASE_HOST_LIBS)
 
 ifeq ($(STATIC_BUILD), NO)
     USR_CXXFLAGS_WIN32    += -DH5_BUILT_AS_DYNAMIC_LIB

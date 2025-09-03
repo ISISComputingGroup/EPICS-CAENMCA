@@ -1,0 +1,55 @@
+record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT")
+{
+    field(DTYP, "asynInt32ArrayIn")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPEC$(ID)EVENT")
+	field(NELM, 32768)
+	field(FTVL, "LONG")
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:TMIN:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPEC$(ID)EVENTTMIN")
+	field(PREC, 3)
+	field(EGU, "ns")
+	field(PINI, "YES")
+	field(VAL, "0.0")
+	info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:TMIN")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPEC$(ID)EVENTTMIN")
+	field(PREC, 1)
+	field(EGU, "ns")
+	field(SCAN, "I/O Intr")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:TMAX:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPEC$(ID)EVENTTMAX")
+	field(PREC, 1)
+	field(EGU, "ns")
+	field(PINI, "YES")
+	field(VAL, "20000000")
+	info(autosaveFields, "VAL")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:TMAX")
+{
+    field(DTYP, "asynFloat64")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPEC$(ID)EVENTTMAX")
+	field(EGU, "ns")
+	field(PREC, 1)
+	field(SCAN, "I/O Intr")
+}
+
+record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:CNTS")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPEC$(ID)EVENTNEVENTS")
+	field(SCAN, "I/O Intr")
+}

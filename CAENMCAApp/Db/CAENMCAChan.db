@@ -105,7 +105,7 @@ record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMIN:SP")
     field(DTYP, "asynFloat64")
 	field(EGU, "ns")
 	field(PREC, 1)
-	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTIMEMIN")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DTIMEMIN")
 	field(PINI, "YES")
 	field(VAL, "0")
 	info(autosaveFields, "VAL")
@@ -116,7 +116,7 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMIN")
     field(DTYP, "asynFloat64")
 	field(EGU, "ns")
 	field(PREC, 1)
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTIMEMIN")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DTIMEMIN")
 	field(SCAN, "I/O Intr")
 }
 
@@ -125,7 +125,7 @@ record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMAX:SP")
     field(DTYP, "asynFloat64")
 	field(EGU, "ns")
 	field(PREC, 1)
-	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTIMEMAX")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DTIMEMAX")
 	field(PINI, "YES")
 	field(VAL, "20000000")
 	info(autosaveFields, "VAL")
@@ -136,7 +136,7 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMAX")
     field(DTYP, "asynFloat64")
 	field(EGU, "ns")
 	field(PREC, 1)
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTIMEMAX")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DTIMEMAX")
 	field(SCAN, "I/O Intr")
 }
 
@@ -145,7 +145,7 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TBINW")
     field(DTYP, "asynFloat64")
 	field(EGU, "ns")
 	field(PREC, 1)
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTBINW")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DTBINW")
 	field(SCAN, "I/O Intr")
 }
 
@@ -153,7 +153,7 @@ record(longout, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:NTBINS:SP")
 {
     field(DTYP, "asynInt32")
 	field(EGU, "")
-	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DNTIMEBINS")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DNTIMEBINS")
 	field(PINI, "YES")
 	field(VAL, "1000")
 	info(autosaveFields, "VAL")
@@ -163,14 +163,14 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:NTBINS")
 {
     field(DTYP, "asynInt32")
 	field(EGU, "")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DNTIMEBINS")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DNTIMEBINS")
 	field(SCAN, "I/O Intr")
 }
 
 record(mbbo, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:ENGBG:SP")
 {
     field(DTYP, "asynInt32")
-	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DENGBINGROUP")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DENGBINGROUP")
 	field(PINI, "YES")
 	field(ZRST, "one")
 	field(ZRVL, "1")
@@ -193,14 +193,14 @@ record(mbbo, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:ENGBG:SP")
 record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:ENGBG")
 {
     field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DENGBINGROUP")
+	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DENGBINGROUP")
 	field(SCAN, "I/O Intr")
 }
 
 record(mbbo, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TRANSMODE:SP")
 {
     field(DTYP, "asynInt32")
-	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC2DTRANSMODE")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPEC_2DTRANSMODE")
 	field(PINI, "YES")
 	field(ZRST, "Linear")
 	field(ZRVL, "0")
@@ -242,6 +242,9 @@ record(longout, "$(P)$(Q)C$(CHAN):ENERGYSPEC:NBINS:SP")
 {
     field(DTYP, "asynInt32")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECNBINS")
+#    field(VAL, "32768")
+#    field(PINI, "YES")
+#    info(autosaveFields, "VAL")
 }
 
 record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC:FILE")
@@ -312,6 +315,9 @@ record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:AUTOSAVE:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECAUTOSAVE")
 	field(PREC, 3)
 	field(EGU, "s")
+#    field(VAL, "5")
+#    field(PINI, "YES")
+#    info(autosaveFields, "VAL")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):NEVENTS")
@@ -326,6 +332,26 @@ record(longin, "$(P)$(Q)C$(CHAN):NEVENTSPROC")
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTSPROCESSED")
 	field(SCAN, "I/O Intr")
+}
+
+# not fake and energy > 0 but may have energy = 32767
+# and get discarded and no time window cut
+record(longin, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0")
+{
+    field(DTYP, "asynInt32")
+	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTENERGYGT0")
+	field(SCAN, "I/O Intr")
+}
+
+# not fake and energy > 0 but excluding energy = 32767
+# that get discarded and no time window cut
+record(calc, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0ND")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0 CP")
+    field(INPB, "$(P)$(Q)C$(CHAN):NENGDISCARD")
+    field(CALC, "A-B")
+    field(UDFS, "NO_ALARM")
+    field(ASG, "READONLY")
 }
 
 record(bi, "$(P)$(Q)C$(CHAN):ENABLED")
@@ -343,6 +369,9 @@ record(bo, "$(P)$(Q)C$(CHAN):ENABLED:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)CHANENABLED")
 	field(ZNAM, "No")
 	field(ONAM, "Yes")
+    field(VAL, "1")
+    field(PINI, "YES")
+    info(autosaveFields, "VAL")
 }
 
 record(bi, "$(P)$(Q)C$(CHAN):POLARITY")
@@ -374,6 +403,17 @@ record(ai, "$(P)$(Q)C$(CHAN):LISTFILE:SIZE")
 	field(SCAN, "I/O Intr")
 }
 
+record(calcout, "$(P)$(Q)C$(CHAN):LISTFILE:RESTART")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):LISTFILE:SIZE")
+    field(INPB, "$(P)$(Q)LISTFILE:SIZE:MAX:SP")
+    field(INPC, "$(P)$(Q)ENDBEGALL:SP.PACT")
+    field(CALC, "C == 0 && A > B")
+    field(OOPT, "When Non-zero")
+    field(OUT, "$(P)$(Q)ENDBEGALL:SP PP")
+    field(SCAN, "1 second")
+}
+
 record(longin, "$(P)$(Q)C$(CHAN):LISTMODE:MAXNEVENTS")
 {
     field(DTYP, "asynInt32")
@@ -385,6 +425,9 @@ record(longout, "$(P)$(Q)C$(CHAN):LISTMODE:MAXNEVENTS:SP")
 {
     field(DTYP, "asynInt32")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)LISTMAXNEVENTS")
+#    field(VAL, "1024")
+#    field(PINI, "YES")
+#    info(autosaveFields, "VAL")
 }
 
 # if doesn't matter if we send 0 or 1, the asyn addr $(CHAN)
@@ -438,6 +481,9 @@ record(mbbo, "$(P)$(Q)C$(CHAN):LISTMODE:SP")
 	field(ONST, "Binary")
 	field(TWVL, "2")
 	field(TWST, "Memory")
+    field(PINI, "YES")
+    field(VAL, "1")
+    info(autosaveFields, "VAL")
 }
 
 record(mbbi, "$(P)$(Q)C$(CHAN):LISTMODE")
@@ -468,6 +514,9 @@ record(bo, "$(P)$(Q)C$(CHAN):LISTENABLED:SP")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)LISTENABLED")
 	field(ZNAM, "No")
 	field(ONAM, "Yes")
+    field(PINI, "YES")
+    field(VAL, "1")
+    info(autosaveFields, "VAL")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NBINS")
@@ -480,8 +529,8 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NBINS")
 record(longout, "$(P)$(Q)C$(CHAN):EVENTSPEC:NBINS:SP")
 {
     field(DTYP, "asynInt32")
-	field(VAL, "1000")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)EVENTSPECNBINS")
+	field(VAL, "1000")
 	field(PINI, "YES")
 	info(autosaveFields, "VAL")
 }
@@ -589,6 +638,7 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTRIG")
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTRIG")
 	field(SCAN, "I/O Intr")
+    info(alarm, "CAENMCA_01")
 }
 
 record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:TRIG:RATE")
@@ -606,69 +656,6 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NEV")
 	field(SCAN, "I/O Intr")
 }
 
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NFAKE")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NFAKEEVENTS")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NIMPDYNSAT")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NIMPDYNAMSATEVENT")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NPILEUP")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NPILEUPEVENT")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGOUTSCA")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTENERGYOUTSCA")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NDURSATINHB")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTDURSATINHIBIT")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NNOTBINNED")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTNOTBINNED")
-	field(SCAN, "I/O Intr")
-}
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGDISCARD")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTENERGYDISCARD")
-	field(SCAN, "I/O Intr")
-}
-
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTTROLL")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTTROLLOVER")
-	field(SCAN, "I/O Intr")
-}
-
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTTRESET")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTTRESET")
-	field(SCAN, "I/O Intr")
-}
-
-record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGSAT")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNENGSAT")
-	field(SCAN, "I/O Intr")
-}
 
 record(ai, "$(P)$(Q)C$(CHAN):EVENTSPEC:MAXTIME")
 {
@@ -786,9 +773,21 @@ record(longin, "$(P)$(Q)C$(CHAN):RUNDURATION")
 
 record(bi, "$(P)$(Q)C$(CHAN):TIMEREG")
 {
+    field(DESC, "Hexagon Timing Register")
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)TIMINGREGISTERCHAN")
 	field(ZNAM, "Error")
+    field(ZSV, "MAJOR")
 	field(ONAM, "OK")
 	field(SCAN, "I/O Intr")
+    info(alarm, "CAENMCA_01")
+}
+
+# enum values set in asyn
+record(mbbo, "$(P)$(Q)C$(CHAN):DET_NAME:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)DETECTORNAMEINDEX")
+    field(PINI, "YES")
+	info(autosaveFields, "VAL")
 }
