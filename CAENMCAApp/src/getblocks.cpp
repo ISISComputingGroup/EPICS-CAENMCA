@@ -177,7 +177,7 @@ epicsShareExtern void getBlocks(time_t start_time, seblock_map_t& blocks)
 
 	for (int i = 0; i < str_val.size(); ++i)
 	{
-		if (!stricmp(str_val[i].c_str(), "Disconnected") || !stricmp(str_val[i].c_str(), "Archive_Off"))
+		if (!epicsStrCaseCmp(str_val[i].c_str(), "Disconnected") || !epicsStrCaseCmp(str_val[i].c_str(), "Archive_Off"))
 		{
 			str_val[i] = "0"; // we are in alarm so value does not matter, but we do not know value data type so use "0" as valid for both numeric and string
 		}
