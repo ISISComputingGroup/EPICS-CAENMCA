@@ -25,6 +25,7 @@ public:
     virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
     virtual asynStatus readFloat64Array(asynUser *pasynUser, epicsFloat64 *value, size_t nElements, size_t *nIn);
     virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value, size_t nElements, size_t *nIn);
+    virtual asynStatus readEnum(asynUser *pasynUser, char *strings[], int values[], int severities[], size_t nElements, size_t *nIn);
     virtual void setShutter(int addr, int open);
 	virtual void report(FILE* fp, int details);
 
@@ -44,7 +45,7 @@ private:
     std::vector<CAEN_MCA_HANDLE> m_hv_chan_h;
 	std::vector<epicsInt32> m_energy_spec[2];
 	std::vector<epicsInt32> m_energy_spec_event[2];
-	std::vector<epicsInt32> m_energy_spec_event2[2];
+	std::vector<epicsInt32> m_energy_spec2_event[2];
 	std::vector<epicsInt32> m_event_spec_2d[2];
 	std::vector<epicsFloat64> m_event_spec_x[2];
 	std::vector<epicsFloat64> m_event_spec_y[2];
@@ -58,6 +59,8 @@ private:
     uint32_t m_tsample; // picoseconds
     std::string m_share_path; // hexagon windows share path
     std::string m_file_dir;
+    std::map<int, std::string> m_detNameMap;
+
 
 	double getParameterValue(CAEN_MCA_HANDLE handle, const char *name);
 	void setParameterValue(CAEN_MCA_HANDLE handle, const char *name, double value);
@@ -127,11 +130,11 @@ private:
  	int P_energySpecEvent; // int array
  	int P_energySpecEventTMin; // float
  	int P_energySpecEventTMax; // float
- 	int P_energySpecEvent2; // int array
- 	int P_energySpecEvent2TMin; // float
- 	int P_energySpecEvent2TMax; // float
  	int P_energySpecEventNEvents; // int 
- 	int P_energySpecEvent2NEvents; // int 
+ 	int P_energySpec2Event; // int array
+ 	int P_energySpec2EventTMin; // float
+ 	int P_energySpec2EventTMax; // float
+ 	int P_energySpec2EventNEvents; // int 
 	int P_energySpecCounts; // int
 	int P_energySpecNBins; // int
 	int P_energySpecFilename; // string
@@ -226,6 +229,7 @@ private:
 	int P_acqStartMode; // int
     int P_timingRegisterChan; // int
     int P_timingRegisters; // int
+    int P_detectorNameIndex; // int
 	int P_startAcquisition; // int
 	int P_stopAcquisition; // int
 
@@ -250,10 +254,10 @@ private:
 #define P_energySpecEventTMinString "ENERGYSPECEVENTTMIN"
 #define P_energySpecEventTMaxString "ENERGYSPECEVENTTMAX"
 #define P_energySpecEventNEventsString "ENERGYSPECEVENTNEVENTS"
-#define P_energySpecEvent2String "ENERGYSPECEVENT2"
-#define P_energySpecEvent2TMinString "ENERGYSPECEVENT2TMIN"
-#define P_energySpecEvent2TMaxString "ENERGYSPECEVENT2TMAX"
-#define P_energySpecEvent2NEventsString "ENERGYSPECEVENT2NEVENTS"
+#define P_energySpec2EventString "ENERGYSPEC2EVENT"
+#define P_energySpec2EventTMinString "ENERGYSPEC2EVENTTMIN"
+#define P_energySpec2EventTMaxString "ENERGYSPEC2EVENTTMAX"
+#define P_energySpec2EventNEventsString "ENERGYSPEC2EVENTNEVENTS"
 #define P_energySpecClearString "ENERGYSPECCLEAR"
 #define P_energySpecCountsString "ENERGYSPECCOUNTS"
 #define P_energySpecNBinsString "ENERGYSPECNBINS"
@@ -343,6 +347,7 @@ private:
 #define P_eventSpecRateString "EVENTSPECRATE"
 #define P_timingRegisterChanString "TIMINGREGISTERCHAN"
 #define P_timingRegistersString "TIMINGREGISTERS"
+#define P_detectorNameIndexString "DETECTORNAMEINDEX"
 
 
 #endif /* CAENMCADRIVER_H */

@@ -383,8 +383,8 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
 		NUM_CAEN_PARAMS,
 					0, // maxBuffers
 					0, // maxMemory
-		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask | asynDrvUserMask, /* Interface mask */
-		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask,  /* Interrupt mask */
+		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask | asynEnumMask | asynDrvUserMask, /* Interface mask */
+		asynInt32Mask | asynInt32ArrayMask | asynFloat64Mask | asynFloat64ArrayMask | asynOctetMask | asynEnumMask,  /* Interrupt mask */
 		ASYN_CANBLOCK | ASYN_MULTIDEVICE, /* asynFlags.  This driver can block and is multi-device */
 		1, /* Autoconnect */
 		0, /* Default priority */
@@ -405,10 +405,10 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
 	createParam(P_energySpecEventTMinString, asynParamFloat64, &P_energySpecEventTMin);
 	createParam(P_energySpecEventTMaxString, asynParamFloat64, &P_energySpecEventTMax);
 	createParam(P_energySpecEventNEventsString, asynParamInt32, &P_energySpecEventNEvents);
-	createParam(P_energySpecEvent2String, asynParamInt32Array, &P_energySpecEvent2);
-	createParam(P_energySpecEvent2TMinString, asynParamFloat64, &P_energySpecEvent2TMin);
-	createParam(P_energySpecEvent2TMaxString, asynParamFloat64, &P_energySpecEvent2TMax);
-	createParam(P_energySpecEvent2NEventsString, asynParamInt32, &P_energySpecEvent2NEvents);
+	createParam(P_energySpec2EventString, asynParamInt32Array, &P_energySpec2Event);
+	createParam(P_energySpec2EventTMinString, asynParamFloat64, &P_energySpec2EventTMin);
+	createParam(P_energySpec2EventTMaxString, asynParamFloat64, &P_energySpec2EventTMax);
+	createParam(P_energySpec2EventNEventsString, asynParamInt32, &P_energySpec2EventNEvents);
 	createParam(P_energySpecCountsString, asynParamInt32, &P_energySpecCounts);
 	createParam(P_energySpecNBinsString, asynParamInt32, &P_energySpecNBins);
     createParam(P_energySpecFilenameString, asynParamOctet, &P_energySpecFilename);
@@ -497,6 +497,10 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     createParam(P_eventSpecRateString, asynParamFloat64,  &P_eventSpecRate);
     createParam(P_timingRegistersString,  asynParamInt32, &P_timingRegisters);
     createParam(P_timingRegisterChanString,  asynParamInt32, &P_timingRegisterChan);
+    createParam(P_detectorNameIndexString, asynParamInt32, &P_detectorNameIndex);
+    for(int i=0; i<9; ++i) {
+        m_detNameMap[i] = std::string("GE")+std::to_string(i+1);
+    }
 
     // don't initialise P_iRunNumber as we want it to come from PINI and we also have asyn:READBACK
 
@@ -695,9 +699,9 @@ void CAENMCADriver::endRun()
             getDoubleParam(i, P_energySpecEventTMin, &tmin);
             getDoubleParam(i, P_energySpecEventTMax, &tmax);
             f1 << "Channel " << i << ": EnergySpecCounts in time range (" << tmin << "," << tmax << "): " << counts << std::endl;
-            getIntegerParam(i, P_energySpecEvent2NEvents, &counts);
-            getDoubleParam(i, P_energySpecEvent2TMin, &tmin);
-            getDoubleParam(i, P_energySpecEvent2TMax, &tmax);
+            getIntegerParam(i, P_energySpec2EventNEvents, &counts);
+            getDoubleParam(i, P_energySpec2EventTMin, &tmin);
+            getDoubleParam(i, P_energySpec2EventTMax, &tmax);
             f1 << "Channel " << i << ": EnergySpecCounts in time range (" << tmin << "," << tmax << "): " << counts << std::endl;
             getIntegerParam(i, P_eventsSpecNEvents, &counts);
             getDoubleParam(i, P_eventsSpecTMin, &tmin);
@@ -853,7 +857,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             event_energy_group.createDataSet("num_events", nevents);
             event_energy_group.createDataSet("num_triggers", ntrig);
             detector.createDataSet("duration", run_dur);
-            driver->getIntegerParam(i, driver->P_energySpecEvent2NEvents, &nevents);
+            driver->getIntegerParam(i, driver->P_energySpec2EventNEvents, &nevents);
             driver->getDoubleParam(i, driver->P_eventsSpec2TMin, &tmin);
             driver->getDoubleParam(i, driver->P_eventsSpec2TMax, &tmax);
             ++k;
@@ -1559,8 +1563,8 @@ void CAENMCADriver::pollerTask()
 		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
 		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
 		    doCallbacksInt32Array(m_energy_spec_event[i].data(), m_energy_spec_event[i].size(), P_energySpecEvent, i);
-		    doCallbacksInt32Array(m_energy_spec_event2[i].data(), m_energy_spec_event2[i].size(), P_energySpecEvent2, i);
-            setIntegerParam(i, P_loadDataStatus, 0);             
+		    doCallbacksInt32Array(m_energy_spec2_event[i].data(), m_energy_spec2_event[i].size(), P_energySpec2Event, i);
+            setIntegerParam(i, P_loadDataStatus, 0);
 		    callParamCallbacks(i);
 		}
         bool acqRunning = isAcqRunning();
@@ -1667,6 +1671,34 @@ asynStatus CAENMCADriver::readInt32(asynUser *pasynUser, epicsInt32 *value)
 	    return asynPortDriver::readInt32(pasynUser, value);
     }
 }
+
+asynStatus CAENMCADriver::readEnum(asynUser *pasynUser, char *strings[], int values[], int severities[], size_t nElements, size_t *nIn)
+{
+    int function = pasynUser->reason;
+    const char *paramName = NULL;
+	getParamName(function, &paramName);
+	int addr = 0;
+	getAddress(pasynUser, &addr);
+    *nIn =0;
+    if (function < FIRST_CAEN_PARAM) {
+        return ADDriver::readEnum(pasynUser, strings, values, severities, nElements, nIn);
+    } 
+    else if (function == P_detectorNameIndex) {
+        int i;
+        for(i=0; i<nElements && i < m_detNameMap.size(); ++i) {
+            if (strings[i]) free(strings[i]);
+            strings[i] = epicsStrDup(m_detNameMap[i].c_str());
+            values[i] = i;
+        }
+        *nIn = i;
+        return asynSuccess;
+    }
+    else {
+        return asynPortDriver::readEnum(pasynUser, strings, values, severities, nElements, nIn);
+    }
+    
+}
+
 
 asynStatus CAENMCADriver::readFloat64Array(asynUser *pasynUser, epicsFloat64 *value, size_t nElements, size_t *nIn)
 {
@@ -2012,7 +2044,7 @@ bool CAENMCADriver::processListFile(int channel_id)
     }
     int64_t frame = 0, last_pos, current_pos = 0, new_bytes, nevents;
     m_energy_spec_event[channel_id].resize(MAX_ENERGY_BINS);
-    m_energy_spec_event2[channel_id].resize(MAX_ENERGY_BINS);
+    m_energy_spec2_event[channel_id].resize(MAX_ENERGY_BINS);
 	if (f != NULL)
 	{
 		current_pos = _ftelli64(f);
@@ -2050,7 +2082,7 @@ bool CAENMCADriver::processListFile(int channel_id)
         new_data = true;
         setIntegerParam(channel_id, P_nEventsProcessed, 0);
         setIntegerParam(channel_id, P_energySpecEventNEvents, 0);
-        setIntegerParam(channel_id, P_energySpecEvent2NEvents, 0);
+        setIntegerParam(channel_id, P_energySpec2EventNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNEvents, 0);
         setIntegerParam(channel_id, P_eventsSpecNTriggers, 0);
         setIntegerParam(channel_id, P_eventsSpecNTimeTagRollover, 0);
@@ -2066,7 +2098,7 @@ bool CAENMCADriver::processListFile(int channel_id)
         setIntegerParam(channel_id, P_nEventEnergyGt0, 0);
         std::fill(m_event_spec_y[channel_id].begin(), m_event_spec_y[channel_id].end(), 0.0);
         std::fill(m_energy_spec_event[channel_id].begin(), m_energy_spec_event[channel_id].end(), 0);
-        std::fill(m_energy_spec_event2[channel_id].begin(), m_energy_spec_event2[channel_id].end(), 0);
+        std::fill(m_energy_spec2_event[channel_id].begin(), m_energy_spec2_event[channel_id].end(), 0);
         std::fill(m_event_spec_2d[channel_id].begin(), m_event_spec_2d[channel_id].end(), 0);
 
         std::string p_filename;
@@ -2150,8 +2182,8 @@ bool CAENMCADriver::processListFile(int channel_id)
     double es_tmin = 0.0, es_tmax = 0.0, es_tmin2 = 0.0, es_tmax2 = 0.0;
     getDoubleParam(channel_id, P_energySpecEventTMin, &es_tmin);
     getDoubleParam(channel_id, P_energySpecEventTMax, &es_tmax);
-    getDoubleParam(channel_id, P_energySpecEvent2TMin, &es_tmin2);
-    getDoubleParam(channel_id, P_energySpecEvent2TMax, &es_tmax2);
+    getDoubleParam(channel_id, P_energySpec2EventTMin, &es_tmin2);
+    getDoubleParam(channel_id, P_energySpec2EventTMax, &es_tmax2);
     bool force_trigger, fake_trigger = false;
     for(int i=0; i<nevents; ++i)
     {
@@ -2242,8 +2274,11 @@ bool CAENMCADriver::processListFile(int channel_id)
                 {
                     ++nevents_real_es;
                     ++(m_energy_spec_event[channel_id][energy]);
+                }
+                if ((es_tmin2 >= es_tmax2) || (tdiff >= es_tmin2 && tdiff <= es_tmax2))
+                {
                     ++nevents_real_es2;
-                    ++(m_energy_spec_event2[channel_id][energy]);
+                    ++(m_energy_spec2_event[channel_id][energy]);
                 }
                 if ((eventSpecRateTMin >= eventSpecRateTMax) ||
                     (tdiff >= eventSpecRateTMin && tdiff <= eventSpecRateTMax))
@@ -2262,7 +2297,7 @@ bool CAENMCADriver::processListFile(int channel_id)
     incrIntParam(channel_id, P_nEventsProcessed, nevents);
     incrIntParam(channel_id, P_eventsSpecNEvents, nevents_real_ev);
     incrIntParam(channel_id, P_energySpecEventNEvents, nevents_real_es);
-    incrIntParam(channel_id, P_energySpecEvent2NEvents, nevents_real_es2);
+    incrIntParam(channel_id, P_energySpec2EventNEvents, nevents_real_es2);
     incrIntParam(channel_id, P_eventsSpecNTriggers, frame);
     incrIntParam(channel_id, P_eventsSpecNTimeTagRollover, ntimerollover);
     incrIntParam(channel_id, P_eventsSpecNTimeTagReset, ntimereset);

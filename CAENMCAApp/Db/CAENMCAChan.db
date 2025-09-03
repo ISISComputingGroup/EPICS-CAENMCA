@@ -782,3 +782,12 @@ record(bi, "$(P)$(Q)C$(CHAN):TIMEREG")
 	field(SCAN, "I/O Intr")
     info(alarm, "CAENMCA_01")
 }
+
+# enum values set in asyn
+record(mbbo, "$(P)$(Q)C$(CHAN):DET_NAME:SP")
+{
+    field(DTYP, "asynInt32")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)DETECTORNAMEINDEX")
+    field(PINI, "YES")
+	info(autosaveFields, "VAL")
+}
