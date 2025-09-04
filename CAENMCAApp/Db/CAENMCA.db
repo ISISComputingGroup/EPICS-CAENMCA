@@ -139,7 +139,6 @@ record(bo, "$(P)$(Q)ENDALL:SP")
     field(OUT,  "@asyn($(PORT),0,0)ENDRUNALL")
     field(FLNK, "$(P)$(Q)SYNCDAE:END.PROC CA")
 }
-
 alias("$(P)$(Q)ENDALL:SP", "$(P)$(Q)ENDALL:SP_")
 
 record(seq, "$(P)$(Q)ENDBEGALL:SP")

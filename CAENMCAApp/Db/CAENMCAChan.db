@@ -100,6 +100,13 @@ record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:CNTS")
 	field(SCAN, "I/O Intr")
 }
 
+record(calc, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:MCNTS")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:CNTS CP")
+    field(CALC, "A/1e6")
+    field(ASG, "READONLY")
+}
+
 record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMIN:SP")
 {
     field(DTYP, "asynFloat64")
@@ -224,6 +231,13 @@ record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:CNTS")
 	field(SCAN, "I/O Intr")
 }
 
+record(calc, "$(P)$(Q)C$(CHAN):ENERGYSPEC:MCNTS")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):ENERGYSPEC:CNTS CP")
+    field(CALC, "A/1e6")
+    field(ASG, "READONLY")
+}
+
 record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:NUM")
 {
     field(DTYP, "asynInt32")
@@ -327,12 +341,27 @@ record(longin, "$(P)$(Q)C$(CHAN):NEVENTS")
 	field(SCAN, "I/O Intr")
 }
 
+record(calc, "$(P)$(Q)C$(CHAN):MNEVENTS")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):NEVENTS CP")
+    field(CALC, "A/1e6")
+    field(ASG, "READONLY")
+}
+
 record(longin, "$(P)$(Q)C$(CHAN):NEVENTSPROC")
 {
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)NEVENTSPROCESSED")
 	field(SCAN, "I/O Intr")
 }
+
+record(calc, "$(P)$(Q)C$(CHAN):MNEVENTSPROC")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):NEVENTSPROC CP")
+    field(CALC, "A/1e6")
+    field(ASG, "READONLY")
+}
+
 
 # not fake and energy > 0 but may have energy = 32767
 # and get discarded and no time window cut
@@ -343,6 +372,13 @@ record(longin, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0")
 	field(SCAN, "I/O Intr")
 }
 
+record(calc, "$(P)$(Q)C$(CHAN):MNEVENTSENERGYGT0")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0 CP")
+    field(CALC, "A/1e6")
+    field(ASG, "READONLY")
+}
+
 # not fake and energy > 0 but excluding energy = 32767
 # that get discarded and no time window cut
 record(calc, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0ND")
@@ -351,6 +387,13 @@ record(calc, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0ND")
     field(INPB, "$(P)$(Q)C$(CHAN):NENGDISCARD")
     field(CALC, "A-B")
     field(UDFS, "NO_ALARM")
+    field(ASG, "READONLY")
+}
+
+record(calc, "$(P)$(Q)C$(CHAN):MNEVENTSENERGYGT0ND")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0ND CP")
+    field(CALC, "A/1e6")
     field(ASG, "READONLY")
 }
 
