@@ -45,7 +45,7 @@
 
 #include <getblocks.h>
 
-using namespace std::string_literals; // enable s suffix for std::string literals
+using namespace std::literals::string_literals; // enable s suffix for std::string literals
 
 static sql::Driver* mysql_driver = NULL;
 
