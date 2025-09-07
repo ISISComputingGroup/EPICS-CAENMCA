@@ -21,9 +21,9 @@ record(waveform, "$(P)$(Q)TITLE:SP")
     info(autosaveFields, "VAL")
 }
 
-record(waveform, "$(P)$(Q)COMMENT")
+record(waveform, "$(P)$(Q)COMMENTS")
 {
-    field(DESC, "Run comment")
+    field(DESC, "Run comments")
     field(NELM, "512")
     field(FTVL, "CHAR")
     field(DTYP, "asynOctetRead")
@@ -33,7 +33,7 @@ record(waveform, "$(P)$(Q)COMMENT")
     info(archive, "VAL")
 }
 
-record(waveform, "$(P)$(Q)COMMENT:SP")
+record(waveform, "$(P)$(Q)COMMENTS:SP")
 {
     field(DESC, "Set Run comment")
     field(NELM, "256")
@@ -42,6 +42,27 @@ record(waveform, "$(P)$(Q)COMMENT:SP")
     field(INP,  "@asyn($(PORT),0,0)RUNCOMMENT")
     field(PINI, "YES")
     info(autosaveFields, "VAL")
+}
+
+record(lso, "$(P)$(Q)USERNAME")
+{
+    field(OMSL, "closed_loop")
+    field(DESC, "Experiment User Surnames")
+	field(DTYP, "asynOctetWrite")
+    field(OUT, "@asyn($(PORT),0,0)USERNAME")
+	field(DOL, "$(P)ED:USERNAME:DAE:SP CP")
+    field(SIZV, "1024")
+	info(autosaveFields, "VAL")
+}
+
+record(stringout, "$(P)$(Q)RBNUMBER")
+{
+    field(DESC, "Experiment (RB) Number")
+    field(OMSL, "closed_loop")
+	field(DOL, "$(P)ED:RBNUMBER CP")
+    field(DTYP, "asynOctetWrite")
+    field(OUT, "@asyn($(PORT),0,0)RBNUMBER")
+	info(autosaveFields, "VAL")
 }
 
 record(stringin, "$(P)$(Q)RUNNUMBER")

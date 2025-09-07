@@ -44,69 +44,6 @@ record(acalcout, "$(P)$(Q)C$(CHAN):ENERGYSPEC:X:CALC")
     field(OUT, "$(P)$(Q)C$(CHAN):ENERGYSPEC:X PP")
 }
 
-record(waveform, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT")
-{
-    field(DTYP, "asynInt32ArrayIn")
-	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENT")
-	field(NELM, 32768)
-	field(FTVL, "LONG")
-	field(SCAN, "I/O Intr")
-}
-
-record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMIN:SP")
-{
-    field(DTYP, "asynFloat64")
-	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMIN")
-	field(PREC, 3)
-	field(EGU, "ns")
-	field(PINI, "YES")
-	field(VAL, "0.0")
-	info(autosaveFields, "VAL")
-}
-
-record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMIN")
-{
-    field(DTYP, "asynFloat64")
-	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMIN")
-	field(PREC, 1)
-	field(EGU, "ns")
-	field(SCAN, "I/O Intr")
-}
-
-record(ao, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMAX:SP")
-{
-    field(DTYP, "asynFloat64")
-	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMAX")
-	field(PREC, 1)
-	field(EGU, "ns")
-	field(PINI, "YES")
-	field(VAL, "20000000")
-	info(autosaveFields, "VAL")
-}
-
-record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:TMAX")
-{
-    field(DTYP, "asynFloat64")
-	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTTMAX")
-	field(EGU, "ns")
-	field(PREC, 1)
-	field(SCAN, "I/O Intr")
-}
-
-record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:CNTS")
-{
-    field(DTYP, "asynInt32")
-	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPECEVENTNEVENTS")
-	field(SCAN, "I/O Intr")
-}
-
-record(calc, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:MCNTS")
-{
-    field(INPA, "$(P)$(Q)C$(CHAN):ENERGYSPEC:EVENT:CNTS CP")
-    field(CALC, "A/1e6")
-    field(ASG, "READONLY")
-}
-
 record(ao, "$(P)$(Q)C$(CHAN):EVENTSPEC2D:TMIN:SP")
 {
     field(DTYP, "asynFloat64")
@@ -827,10 +764,34 @@ record(bi, "$(P)$(Q)C$(CHAN):TIMEREG")
 }
 
 # enum values set in asyn
-record(mbbo, "$(P)$(Q)C$(CHAN):DET_NAME:SP")
+record(mbbo, "$(P)$(Q)C$(CHAN):DET:NAME:SP")
 {
     field(DTYP, "asynInt32")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)DETECTORNAMEINDEX")
+    field(PINI, "YES")
+	info(autosaveFields, "VAL")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):DET:DISTANCE:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)DETECTORDISTANCE")
+    field(PINI, "YES")
+	info(autosaveFields, "VAL")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):DET:THETA:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)DETECTORTHETA")
+    field(PINI, "YES")
+	info(autosaveFields, "VAL")
+}
+
+record(ao, "$(P)$(Q)C$(CHAN):DET:PHI:SP")
+{
+    field(DTYP, "asynFloat64")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)DETECTORPHI")
     field(PINI, "YES")
 	info(autosaveFields, "VAL")
 }

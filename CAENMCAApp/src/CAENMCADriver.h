@@ -131,10 +131,12 @@ private:
  	int P_energySpecEventTMin; // float
  	int P_energySpecEventTMax; // float
  	int P_energySpecEventNEvents; // int 
+ 	int P_energySpecEventDesc; // string
  	int P_energySpec2Event; // int array
  	int P_energySpec2EventTMin; // float
  	int P_energySpec2EventTMax; // float
  	int P_energySpec2EventNEvents; // int 
+ 	int P_energySpec2EventDesc; // string
 	int P_energySpecCounts; // int
 	int P_energySpecNBins; // int
 	int P_energySpecFilename; // string
@@ -230,7 +232,12 @@ private:
     int P_timingRegisterChan; // int
     int P_timingRegisters; // int
     int P_detectorNameIndex; // int
-	int P_startAcquisition; // int
+    int P_detectorDistance; // float
+    int P_detectorTheta; // float
+    int P_detectorPhi; // float
+    int P_username; // string
+    int P_RBNumber; // string
+ 	int P_startAcquisition; // int
 	int P_stopAcquisition; // int
 
 #define LAST_CAEN_PARAM 	P_stopAcquisition
@@ -254,10 +261,12 @@ private:
 #define P_energySpecEventTMinString "ENERGYSPECEVENTTMIN"
 #define P_energySpecEventTMaxString "ENERGYSPECEVENTTMAX"
 #define P_energySpecEventNEventsString "ENERGYSPECEVENTNEVENTS"
+#define P_energySpecEventDescString "ENERGYSPECEVENTDESC"
 #define P_energySpec2EventString "ENERGYSPEC2EVENT"
 #define P_energySpec2EventTMinString "ENERGYSPEC2EVENTTMIN"
 #define P_energySpec2EventTMaxString "ENERGYSPEC2EVENTTMAX"
 #define P_energySpec2EventNEventsString "ENERGYSPEC2EVENTNEVENTS"
+#define P_energySpec2EventDescString "ENERGYSPEC2EVENTDESC"
 #define P_energySpecClearString "ENERGYSPECCLEAR"
 #define P_energySpecCountsString "ENERGYSPECCOUNTS"
 #define P_energySpecNBinsString "ENERGYSPECNBINS"
@@ -348,6 +357,11 @@ private:
 #define P_timingRegisterChanString "TIMINGREGISTERCHAN"
 #define P_timingRegistersString "TIMINGREGISTERS"
 #define P_detectorNameIndexString "DETECTORNAMEINDEX"
+#define P_detectorDistanceString "DETECTORDISTANCE"
+#define P_detectorThetaString "DETECTORTHETA"
+#define P_detectorPhiString "DETECTORPHI"
+#define P_usernameString "USERNAME"
+#define P_RBNumberString "RBNUMBER"
 
 
 #endif /* CAENMCADRIVER_H */

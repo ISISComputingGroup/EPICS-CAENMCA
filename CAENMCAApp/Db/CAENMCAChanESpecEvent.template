@@ -47,9 +47,25 @@ record(ai, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:TMAX")
 	field(SCAN, "I/O Intr")
 }
 
+record(lso, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:DESC:SP")
+{
+    field(DTYP, "asynOctetWrite")
+	field(OUT, "@asyn($(PORT),$(CHAN),0)ENERGYSPEC$(ID)EVENTDESC")
+	field(PINI, "YES")
+    field(SIZV, "256")
+	info(autosaveFields, "VAL")
+}
+
 record(longin, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:CNTS")
 {
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)ENERGYSPEC$(ID)EVENTNEVENTS")
 	field(SCAN, "I/O Intr")
+}
+
+record(calc, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:MCNTS")
+{
+    field(INPA, "$(P)$(Q)C$(CHAN):ENERGYSPEC$(ID):EVENT:CNTS CP")
+    field(CALC, "A/1e6")
+    field(ASG, "READONLY")
 }
