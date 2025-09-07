@@ -777,6 +777,8 @@ record(ao, "$(P)$(Q)C$(CHAN):DET:DISTANCE:SP")
     field(DTYP, "asynFloat64")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)DETECTORDISTANCE")
     field(PINI, "YES")
+    field(EGU, "cm")
+    field(PREC, "2")
 	info(autosaveFields, "VAL")
 }
 
@@ -785,6 +787,8 @@ record(ao, "$(P)$(Q)C$(CHAN):DET:THETA:SP")
     field(DTYP, "asynFloat64")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)DETECTORTHETA")
     field(PINI, "YES")
+    field(EGU, "degree")
+    field(PREC, "2")
 	info(autosaveFields, "VAL")
 }
 
@@ -793,5 +797,7 @@ record(ao, "$(P)$(Q)C$(CHAN):DET:PHI:SP")
     field(DTYP, "asynFloat64")
 	field(OUT, "@asyn($(PORT),$(CHAN),0)DETECTORPHI")
     field(PINI, "YES")
+    field(EGU, "degree")
+    field(PREC, "2")
 	info(autosaveFields, "VAL")
 }

@@ -853,6 +853,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             for(int j=0; j<event_energy_x.size(); ++j) {
                 event_energy_x[j] = scaleA * j + scaleB;
             }
+            counts.createAttribute("signal", 1);
             hf::DataSet event_energy = event_energy_group.createDataSet("energy", event_energy_x);
             driver->getIntegerParam(i, driver->P_eventsSpecNTriggers, &ntrig);
             driver->getIntegerParam(i, driver->P_energySpecEventNEvents, &nevents);
@@ -865,22 +866,27 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             event_energy.createAttribute("event_time_max", tmax);
             event_energy_group.createDataSet("event_time_min", tmin);
             event_energy_group.createDataSet("event_time_max", tmax);
-            event_energy_group.createDataSet("duration", run_dur);
             event_energy_group.createDataSet("num_events", nevents);
-            event_energy_group.createDataSet("num_triggers", ntrig);
             event_energy_group.createDataSet("desc", desc);
             driver->getIntegerParam(i, driver->P_detectorNameIndex, &ival);
             detector.createDataSet("name", driver->m_detNameMap[ival]);
             driver->getDoubleParam(i, driver->P_detectorDistance, &dval);
             detector.createDataSet("distance", dval);
             driver->getDoubleParam(i, driver->P_detectorTheta, &dval);
-            detector.createDataSet("theta", dval);
+            detector.createDataSet("polar_angle", dval);
             driver->getDoubleParam(i, driver->P_detectorPhi, &dval);
-            detector.createDataSet("phi", dval);
+            detector.createDataSet("azimuthal_angle", dval);
+            detector.createDataSet("duration", run_dur);
+            detector.createDataSet("num_triggers", ntrig);
+//            driver->getStringParam(i, driver->P_startTime, startTime);
+//            driver->getStringParam(i, driver->P_stopTime, stopTime);
+//            detector.createDataSet("start_time", startTime);
+//            detector.createDataSet("end_time", stopTime);
 
             std::string event2_energy_group_name = "detector_" + std::to_string(k) + "_energyB";
             hf::Group event2_energy_group = createNeXusGroup(raw_data_1, event2_energy_group_name, "NXdata");
             hf::DataSet counts2 = event2_energy_group.createDataSet("counts", driver->m_energy_spec2_event[i]);
+            counts2.createAttribute("signal", 1);
             std::vector<double> event2_energy_x(driver->m_energy_spec2_event[i].size());
             for(int j=0; j<event_energy_x.size(); ++j) {
                 event2_energy_x[j] = scaleA * j + scaleB;
@@ -894,9 +900,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             event2_energy.createAttribute("event_time_max", tmax);
             event2_energy_group.createDataSet("event_time_min", tmin);
             event2_energy_group.createDataSet("event_time_max", tmax);
-            event2_energy_group.createDataSet("duration", run_dur);
             event2_energy_group.createDataSet("num_events", nevents);
-            event2_energy_group.createDataSet("num_triggers", ntrig);
             event2_energy_group.createDataSet("desc", desc);
             
             std::string event_energy2d_group_name = "detector_" + std::to_string(k) + "_energy2D";
@@ -931,11 +935,16 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
     raw_data_1.createDataSet("start_time", startTime);
     raw_data_1.createDataSet("end_time", stopTime);
     raw_data_1.createDataSet("duration", run_dur);
+    raw_data_1.createDataSet("collection_time", run_dur);
     raw_data_1.createDataSet("good_frames", ntrig);
     raw_data_1.createDataSet("raw_frames", ntrig);
     raw_data_1.createDataSet("run_number", atoi(runNumber));    
     raw_data_1.createDataSet("experiment_identifier", rb_number);
-    raw_data_1.createDataSet("users", users);
+    hf::Group user = raw_data_1.getGroup("user_1");
+    user.createDataSet("name", users);
+    user.createDataSet("affiliation", "");
+    hf::Group sample = instrument.getGroup("sample");
+    sample.createDataSet("name", title);
     return filename;
 }
 

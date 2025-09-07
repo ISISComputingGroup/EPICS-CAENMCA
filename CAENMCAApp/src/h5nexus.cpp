@@ -31,7 +31,20 @@ void createNeXusStructure(const std::string&filename, hf::File& out_file)
     out_file.createAttribute<std::string>("file_name", filename);
     out_file.createAttribute<std::string>("file_time", "now");
     out_file.createAttribute<std::string>("NeXus_version", "0.0.0");
+    out_file.createAttribute<std::string>("IDF_version", "2");
+    out_file.createAttribute<std::string>("beamline", "MUX");
+    out_file.createAttribute<std::string>("name", "MUX");
+    out_file.createAttribute<std::string>("program_name", "CAENMCA-IOC-01");
+    out_file.createAttribute<std::string>("run_cycle", "25_3");
     hf::Group raw_data_1 = createNeXusGroup(out_file, "raw_data_1", "NXentry");
     hf::Group instrument = createNeXusGroup(raw_data_1, "instrument", "NXinstrument");
+    instrument.createDataSet("name", "MUX");
+    hf::Group source = createNeXusGroup(instrument, "source", "NXsource");
+    source.createDataSet("name", "ISIS");
+    source.createDataSet("probe", "negative muons");
+    source.createDataSet("type", "Pulsed Muon Source");    
+    hf::Group sample = createNeXusGroup(raw_data_1, "sample", "NXsample");
+    sample.createDataSet("distance", 0.0);
+    hf::Group user = createNeXusGroup(raw_data_1, "user_1", "NXuser");
 }
 
