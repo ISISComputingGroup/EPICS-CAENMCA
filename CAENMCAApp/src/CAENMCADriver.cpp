@@ -864,6 +864,8 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             event_energy.createAttribute<std::string>("units", "?");
             event_energy.createAttribute("event_time_min", tmin);
             event_energy.createAttribute("event_time_max", tmax);
+            event_energy.createAttribute("scaleA", scaleA);
+            event_energy.createAttribute("scaleB", scaleB);
             event_energy_group.createDataSet("event_time_min", tmin);
             event_energy_group.createDataSet("event_time_max", tmax);
             event_energy_group.createDataSet("num_events", nevents);
@@ -878,6 +880,8 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             detector.createDataSet("azimuthal_angle", dval);
             detector.createDataSet("duration", run_dur);
             detector.createDataSet("num_triggers", ntrig);
+            detector.createDataSet("energy_scaleA", scaleA);
+            detector.createDataSet("energy_scaleB", scaleB);
 //            driver->getStringParam(i, driver->P_startTime, startTime);
 //            driver->getStringParam(i, driver->P_stopTime, stopTime);
 //            detector.createDataSet("start_time", startTime);
@@ -898,6 +902,8 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             driver->getStringParam(i, driver->P_energySpec2EventDesc, desc);
             event2_energy.createAttribute("event_time_min", tmin);
             event2_energy.createAttribute("event_time_max", tmax);
+            event2_energy.createAttribute("scaleA", scaleA);
+            event2_energy.createAttribute("scaleB", scaleB);
             event2_energy_group.createDataSet("event_time_min", tmin);
             event2_energy_group.createDataSet("event_time_max", tmax);
             event2_energy_group.createDataSet("num_events", nevents);
