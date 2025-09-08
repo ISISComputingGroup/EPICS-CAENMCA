@@ -949,7 +949,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
     hf::Group user = raw_data_1.getGroup("user_1");
     user.createDataSet("name", users);
     user.createDataSet("affiliation", "");
-    hf::Group sample = instrument.getGroup("sample");
+    hf::Group sample = raw_data_1.getGroup("sample");
     sample.createDataSet("name", title);
     return filename;
 }
