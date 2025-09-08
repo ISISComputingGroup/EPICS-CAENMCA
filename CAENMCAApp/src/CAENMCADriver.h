@@ -237,6 +237,8 @@ private:
     int P_detectorPhi; // float
     int P_username; // string
     int P_RBNumber; // string
+    int P_BLGeometry; // string
+    int P_sampleGeometry; // string
  	int P_startAcquisition; // int
 	int P_stopAcquisition; // int
 
@@ -362,6 +364,8 @@ private:
 #define P_detectorPhiString "DETECTORPHI"
 #define P_usernameString "USERNAME"
 #define P_RBNumberString "RBNUMBER"
+#define P_BLGeometryString "BLGEOMETRY"
+#define P_sampleGeometryString "SAMPLEGEOMETRY"
 
 
 #endif /* CAENMCADRIVER_H */

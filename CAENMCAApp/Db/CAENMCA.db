@@ -44,6 +44,28 @@ record(waveform, "$(P)$(Q)COMMENTS:SP")
     info(autosaveFields, "VAL")
 }
 
+record(lso, "$(P)$(Q)BL:GEOMETRY")
+{
+    field(DTYP, "asynOctetWrite")
+    field(OMSL, "closed_loop")
+    field(SIZV, "512")
+    field(DOL, "$(P)PARS:BL:GEOMETRY:SP CP")
+    field(OUT,  "@asyn($(PORT),0,0)BLGEOMETRY")
+    field(PINI, "YES")
+	info(autosaveFields, "VAL")
+}
+
+record(lso, "$(P)$(Q)SAMPLE:GEOMETRY")
+{
+    field(DTYP, "asynOctetWrite")
+    field(OMSL, "closed_loop")
+    field(SIZV, "512")
+    field(DOL, "$(P)PARS:SAMPLE:GEOMETRY:SP CP")
+    field(OUT,  "@asyn($(PORT),0,0)SAMPLEGEOMETRY")
+    field(PINI, "YES")
+	info(autosaveFields, "VAL")
+}
+
 record(lso, "$(P)$(Q)USERNAME")
 {
     field(OMSL, "closed_loop")
@@ -52,6 +74,7 @@ record(lso, "$(P)$(Q)USERNAME")
     field(OUT, "@asyn($(PORT),0,0)USERNAME")
 	field(DOL, "$(P)ED:USERNAME:DAE:SP CP")
     field(SIZV, "1024")
+    field(PINI, "YES")
 	info(autosaveFields, "VAL")
 }
 
@@ -62,6 +85,7 @@ record(stringout, "$(P)$(Q)RBNUMBER")
 	field(DOL, "$(P)ED:RBNUMBER CP")
     field(DTYP, "asynOctetWrite")
     field(OUT, "@asyn($(PORT),0,0)RBNUMBER")
+    field(PINI, "YES")
 	info(autosaveFields, "VAL")
 }
 
