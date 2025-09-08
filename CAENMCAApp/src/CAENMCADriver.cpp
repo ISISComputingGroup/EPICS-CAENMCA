@@ -948,7 +948,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
     raw_data_1.createDataSet("experiment_identifier", rb_number);
     hf::Group user = raw_data_1.getGroup("user_1");
     user.createDataSet("name", users);
-    user.createDataSet("affiliation", "");
+    user.createDataSet<std::string>("affiliation", "");
     hf::Group sample = raw_data_1.getGroup("sample");
     sample.createDataSet("name", title);
     return filename;
