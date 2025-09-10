@@ -671,18 +671,21 @@ void CAENMCADriver::beginRunAll()
 
 void CAENMCADriver::endRun()
 {
-    std::string filePrefix, title, comment, runNumber, startTime, stopTime, deviceName, desc, bl_geometry, sample_geometry;
+    std::string filePrefix, title, comment, runNumber, startTime, stopTime;
+    std::string deviceName, desc, bl_geometry, sample_geometry, rb_number;
     char filename[256];
     int ntrig, counts;
-    int run_dur;
-    double tmin, tmax;
+    int run_dur, ival;
+    double tmin, tmax, dval;
     g_drivers[0]->getStringParam(g_drivers[0]->P_filePrefix, filePrefix);
     g_drivers[0]->getStringParam(g_drivers[0]->P_runTitle, title);
     g_drivers[0]->getStringParam(g_drivers[0]->P_runComment, comment);
     g_drivers[0]->getStringParam(g_drivers[0]->P_runNumber, runNumber);
     g_drivers[0]->getStringParam(g_drivers[0]->P_sampleGeometry, sample_geometry);
     g_drivers[0]->getStringParam(g_drivers[0]->P_BLGeometry, bl_geometry);
+    g_drivers[0]->getStringParam(g_drivers[0]->P_RBNumber, rb_number);
     getStringParam(P_deviceName, deviceName);
+
     epicsSnprintf(filename, sizeof(filename), "%s%s_%s_info.txt", filePrefix.c_str(), runNumber.c_str(), deviceName.c_str());
     std::fstream f1, f2;
     
@@ -694,6 +697,7 @@ void CAENMCADriver::endRun()
         f1 << "Comment: " << comment << std::endl;
         f1 << "Detector Orientation: " << bl_geometry << std::endl;
         f1 << "Sample Geometry/shape: " << sample_geometry << std::endl;
+        f1 << "RBNumber: " << rb_number << std::endl;
         for(int i=0; i<2; ++i) {
             getStringParam(i, P_startTime, startTime);
             getStringParam(i, P_stopTime, stopTime);
@@ -725,6 +729,15 @@ void CAENMCADriver::endRun()
             getDoubleParam(i, P_eventsSpecTMax, &tmax);
             f1 << "Channel " << i << ": EventsSpecCounts in time range (" << tmin << "," << tmax << "): " << counts << std::endl;
             f1 << "Channel " << i << ": EnergyScale A * x + B: A=" << scaleA << ", B=" << scaleB << std::endl;
+            getIntegerParam(i, P_detectorNameIndex, &ival);
+            f1 << "Channel " << i << ": DetectorName: " << m_detNameMap[ival] << std::endl;
+            getDoubleParam(i, P_detectorDistance, &dval);
+            f1 << "Channel " << i << ": DetectorDistance (cm): " << dval << std::endl;
+            getDoubleParam(i, P_detectorTheta, &dval);
+            f1 << "Channel " << i << ": DetectorTheta (deg): " << dval << std::endl;
+            getDoubleParam(i, P_detectorPhi, &dval);
+            f1 << "Channel " << i << ": DetectorPhi(deg): " << dval << std::endl;
+
         }
         f1.close();
     }
@@ -924,7 +937,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             driver->getIntegerParam(i, driver->P_eventSpec_2DNTimeBins, &eventSpec_2d_nTBins);
             size_t eventSpec_2d_nx = MAX_ENERGY_BINS / eventSpec_2d_engBinGroup;
             size_t eventSpec_2d_ny = eventSpec_2d_nTBins;
-            std::vector<size_t> dims{eventSpec_2d_nx, eventSpec_2d_ny};
+            std::vector<size_t> dims{eventSpec_2d_ny, eventSpec_2d_nx};
             hf::DataSet counts2d = event_energy2d_group.createDataSet<epicsInt32>("counts", hf::DataSpace(dims));
             if (driver->m_event_spec_2d[i].size() > 0) {
                 counts2d.write_raw(driver->m_event_spec_2d[i].data());
