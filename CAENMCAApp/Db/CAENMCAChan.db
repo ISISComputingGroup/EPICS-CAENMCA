@@ -612,7 +612,7 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE")
 	field(EGU, "ev/trg")
 	field(PREC, 2)
 	field(SCAN, "I/O Intr")
-	info(autosaveFields, "LOW HIGH")
+	info(autosaveFields, "LOW HIGH LSV HSV")
     info(alarm, "CAENMCA_01")
     info(INTEREST, "HIGH")
 }
