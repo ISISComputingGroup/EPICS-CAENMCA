@@ -66,6 +66,17 @@ record(lso, "$(P)$(Q)SAMPLE:GEOMETRY")
 	info(autosaveFields, "VAL")
 }
 
+record(lso, "$(P)$(Q)SAMPLE:NAME")
+{
+    field(DTYP, "asynOctetWrite")
+    field(OMSL, "closed_loop")
+    field(SIZV, "512")
+    field(DOL, "$(P)PARS:SAMPLE:NAME:SP CP")
+    field(OUT,  "@asyn($(PORT),0,0)SAMPLENAME")
+    field(PINI, "YES")
+	info(autosaveFields, "VAL")
+}
+
 record(lso, "$(P)$(Q)USERNAME")
 {
     field(OMSL, "closed_loop")

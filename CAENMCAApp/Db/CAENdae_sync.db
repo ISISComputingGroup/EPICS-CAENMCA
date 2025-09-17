@@ -29,14 +29,6 @@ record(lso, "$(P)$(Q)SYNCDAE:TITLE")
     field(OUT, "$(P)$(Q)TITLE:SP PP")
 }
 
-record(lso, "$(P)$(Q)SYNCDAE:TITLE2")
-{
-    field(OMSL, "closed_loop")
-    field(SIZV, "512")
-    field(DOL, "$(P)PARS:SAMPLE:NAME:SP CP")
-    field(OUT, "$(P)$(Q)TITLE:SP PP")
-}
-
 record(lso, "$(P)$(Q)SYNCDAE:COMMENTS")
 {
     field(OMSL, "closed_loop")

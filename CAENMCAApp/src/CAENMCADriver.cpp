@@ -510,6 +510,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     createParam(P_RBNumberString, asynParamOctet, &P_RBNumber);
     createParam(P_BLGeometryString, asynParamOctet, &P_BLGeometry);
     createParam(P_sampleGeometryString, asynParamOctet, &P_sampleGeometry);
+    createParam(P_sampleNameString, asynParamOctet, &P_sampleName);
 
     // don't initialise P_iRunNumber as we want it to come from PINI and we also have asyn:READBACK
 
@@ -672,7 +673,7 @@ void CAENMCADriver::beginRunAll()
 void CAENMCADriver::endRun()
 {
     std::string filePrefix, title, comment, runNumber, startTime, stopTime;
-    std::string deviceName, desc, bl_geometry, sample_geometry, rb_number;
+    std::string deviceName, desc, bl_geometry, sample_geometry, sample_name, rb_number;
     char filename[256];
     int ntrig, counts;
     int run_dur, ival;
@@ -682,6 +683,7 @@ void CAENMCADriver::endRun()
     g_drivers[0]->getStringParam(g_drivers[0]->P_runComment, comment);
     g_drivers[0]->getStringParam(g_drivers[0]->P_runNumber, runNumber);
     g_drivers[0]->getStringParam(g_drivers[0]->P_sampleGeometry, sample_geometry);
+    g_drivers[0]->getStringParam(g_drivers[0]->P_sampleName, sample_name);
     g_drivers[0]->getStringParam(g_drivers[0]->P_BLGeometry, bl_geometry);
     g_drivers[0]->getStringParam(g_drivers[0]->P_RBNumber, rb_number);
     getStringParam(P_deviceName, deviceName);
@@ -694,6 +696,7 @@ void CAENMCADriver::endRun()
     try {
         f1.open(filename, std::ios::out | std::ios::trunc);
         f1 << "Title: " << title << std::endl;
+        f1 << "Sample name: " << sample_name << std::endl;
         f1 << "Comment: " << comment << std::endl;
         f1 << "Detector Orientation: " << bl_geometry << std::endl;
         f1 << "Sample Geometry/shape: " << sample_geometry << std::endl;
@@ -846,7 +849,7 @@ void CAENMCADriver::getParameterInfo(CAEN_MCA_HANDLE handle, const char *name)
 std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix, const char* runNumber)
 {
     char filename[256], sefilename[256];
-    std::string title, comment, startTime, stopTime, desc, rb_number, users, sample_geometry, bl_geometry;
+    std::string title, comment, startTime, stopTime, desc, rb_number, users, sample_geometry, sample_name, bl_geometry;
     int ntrig, nevents;
     int run_dur, ival;  
     double tmin, tmax, dval;
@@ -959,6 +962,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
     g_drivers[0]->getStringParam(0, g_drivers[0]->P_RBNumber, rb_number);
     g_drivers[0]->getStringParam(0, g_drivers[0]->P_username, users);
     g_drivers[0]->getStringParam(g_drivers[0]->P_sampleGeometry, sample_geometry);
+    g_drivers[0]->getStringParam(g_drivers[0]->P_sampleName, sample_name);
     raw_data_1.createDataSet("title", title);
     raw_data_1.createDataSet("notes", comment);
     raw_data_1.createDataSet("start_time", startTime);
@@ -973,7 +977,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
     user.createDataSet("name", users);
     user.createDataSet<std::string>("affiliation", "");
     hf::Group sample = raw_data_1.getGroup("sample");
-    sample.createDataSet("name", title);
+    sample.createDataSet("name", sample_name);
     sample.createDataSet("shape", sample_geometry);
     return filename;
 }

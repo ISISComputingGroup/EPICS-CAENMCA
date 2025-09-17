@@ -606,11 +606,15 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:TMAX")
 
 record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE")
 {
+    field(DESC, "Rate between specified TMIN and TMAX")
     field(DTYP, "asynFloat64")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATE")
 	field(EGU, "ev/trg")
-	field(PREC, 1)
+	field(PREC, 2)
 	field(SCAN, "I/O Intr")
+	info(autosaveFields, "LOW HIGH")
+    info(alarm, "CAENMCA_01")
+    info(INTEREST, "HIGH")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTRIG")
@@ -618,6 +622,8 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:NTRIG")
     field(DTYP, "asynInt32")
 	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECNTRIG")
 	field(SCAN, "I/O Intr")
+    # this PV explicitly has an alarm set on it by the IOC if an error is seem
+    # hence add it to the alarm set
     info(alarm, "CAENMCA_01")
 }
 

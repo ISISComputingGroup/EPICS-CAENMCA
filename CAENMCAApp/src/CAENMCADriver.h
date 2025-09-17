@@ -239,6 +239,7 @@ private:
     int P_RBNumber; // string
     int P_BLGeometry; // string
     int P_sampleGeometry; // string
+    int P_sampleName; // string
  	int P_startAcquisition; // int
 	int P_stopAcquisition; // int
 
@@ -366,6 +367,7 @@ private:
 #define P_RBNumberString "RBNUMBER"
 #define P_BLGeometryString "BLGEOMETRY"
 #define P_sampleGeometryString "SAMPLEGEOMETRY"
+#define P_sampleNameString "SAMPLENAME"
 
 
 #endif /* CAENMCADRIVER_H */
