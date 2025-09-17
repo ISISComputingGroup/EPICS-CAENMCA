@@ -1653,6 +1653,10 @@ void CAENMCADriver::pollerTask()
             getHVInfo(i);
             getChannelInfo(i);
 		    getLists(i);
+            if (!isAcqRunning(m_chan_h[i])) {
+                setDoubleParam(i, P_eventSpecRate, 0.0);
+                setDoubleParam(i, P_eventsSpecTriggerRate, 0.0);
+            }
             new_data = processListFile(i);
             setIntegerParam(i, P_loadDataStatus, 2);
 		    callParamCallbacks(i);
@@ -2267,6 +2271,8 @@ bool CAENMCADriver::processListFile(int channel_id)
     nevents = new_bytes / EVENT_SIZE;
     if (nevents == 0)
     {
+        setDoubleParam(channel_id, P_eventSpecRate, 0.0);
+        setDoubleParam(channel_id, P_eventsSpecTriggerRate, 0.0);
         return new_data;
     }
     new_data = true;
