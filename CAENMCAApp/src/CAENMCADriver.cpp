@@ -2271,8 +2271,9 @@ bool CAENMCADriver::processListFile(int channel_id)
     nevents = new_bytes / EVENT_SIZE;
     if (nevents == 0)
     {
-        setDoubleParam(channel_id, P_eventSpecRate, 0.0);
-        setDoubleParam(channel_id, P_eventsSpecTriggerRate, 0.0);
+// cannot do this as buffer may still be filling up onhexagon and we get 0
+//        setDoubleParam(channel_id, P_eventSpecRate, 0.0);
+//        setDoubleParam(channel_id, P_eventsSpecTriggerRate, 0.0);
         return new_data;
     }
     new_data = true;
