@@ -321,7 +321,7 @@ record(calc, "$(P)$(Q)C$(CHAN):MNEVENTSENERGYGT0")
 record(calc, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0ND")
 {
     field(INPA, "$(P)$(Q)C$(CHAN):NEVENTSENERGYGT0 CP")
-    field(INPB, "$(P)$(Q)C$(CHAN):NENGDISCARD")
+    field(INPB, "$(P)$(Q)C$(CHAN):EVENTSPEC:NENGDISCARD")
     field(CALC, "A-B")
     field(UDFS, "NO_ALARM")
     field(ASG, "READONLY")
@@ -604,15 +604,44 @@ record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:TMAX")
 	field(SCAN, "I/O Intr")
 }
 
-record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE")
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:RAW")
 {
     field(DESC, "Rate between specified TMIN and TMAX")
     field(DTYP, "asynFloat64")
-	field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATE")
-	field(EGU, "ev/trg")
-	field(PREC, 2)
-	field(SCAN, "I/O Intr")
-	info(autosaveFields, "LOW HIGH LSV HSV")
+    field(INP, "@asyn($(PORT),$(CHAN),0)EVENTSPECRATE")
+    field(EGU, "ev/trg")
+    field(PREC, 2)
+    field(SCAN, "I/O Intr")
+    info(autosaveFields, "LOW HIGH LSV HSV")
+    info(alarm, "CAENMCA_01")
+    info(INTEREST, "MEDIUM")
+}
+
+record(compress, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:BUF")
+{
+    field(ALG, "Circular Buffer")
+    field(INP, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:RAW NPP MS")
+    field(NSAM, "15")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:AVG")
+}
+
+record(compress, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:AVG")
+{
+    field(ALG, "N to 1 Average")
+    field(INP, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:BUF NPP MS")
+    field(NSAM, "1")
+    field(N, "15")
+    field(FLNK, "$(P)$(Q)C$(CHAN):EVENTSPECRATE")
+}
+
+record(ai, "$(P)$(Q)C$(CHAN):EVENTSPECRATE")
+{
+    field(DESC, "Rate between specified TMIN and TMAX")
+    field(EGU, "ev/trg")
+    field(PREC, "2")
+    field(INP, "$(P)$(Q)C$(CHAN):EVENTSPECRATE:AVG NPP MS")
+    info(autosaveFields, "LOW HIGH LSV HSV")
     info(alarm, "CAENMCA_01")
     info(INTEREST, "HIGH")
 }

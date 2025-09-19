@@ -9,9 +9,10 @@ record(longin, "$(P)$(Q)C$(CHAN):EVENTSPEC:$(NAME)")
 record(calc, "$(P)$(Q)C$(CHAN):EVENTSPEC:$(NAME):PC")
 {
     field(INPA, "$(P)$(Q)C$(CHAN):EVENTSPEC:$(NAME)")
-    field(INPB, "$(P)$(Q)C$(CHAN):EVENTSPEC:$(REFCNT) CP")
+    field(INPB, "$(P)$(Q)C$(CHAN):$(REFCNT) CP")
     field(CALC, "B!=0?100.0*A/B:0") 
     field(EGU, "%")
+    field(PREC, "1")
     field(ASG, "READONLY")
     field(UDFS, "NO_ALARM")
 }
