@@ -511,6 +511,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     createParam(P_BLGeometryString, asynParamOctet, &P_BLGeometry);
     createParam(P_sampleGeometryString, asynParamOctet, &P_sampleGeometry);
     createParam(P_sampleNameString, asynParamOctet, &P_sampleName);
+    createParam(P_fileDirPrefixString, asynParamOctet, &P_fileDirPrefix);
 
     // don't initialise P_iRunNumber as we want it to come from PINI and we also have asyn:READBACK
 
@@ -614,16 +615,17 @@ void CAENMCADriver::setRunNumberFromIRunNumber()
 
 void CAENMCADriver::setFileNames()
 {
-    std::string deviceName, runNumber;
-    char filename[256];
+    std::string deviceName, runNumber, fileDirPrefix;
+    char filename[512];
     setRunNumberFromIRunNumber();
     g_drivers[0]->getStringParam(g_drivers[0]->P_runNumber, runNumber);
     getStringParam(P_deviceName, deviceName);
+    getStringParam(P_fileDirPrefix, fileDirPrefix);
     for(int i=0; i<2; ++i) {
-        epicsSnprintf(filename, sizeof(filename), "%s/%s_%s_ch%d.bin", m_file_dir.c_str(), deviceName.c_str(), runNumber.c_str(), i);
+        epicsSnprintf(filename, sizeof(filename), "%s%s/%s_%s_ch%d.bin", fileDirPrefix.c_str(), m_file_dir.c_str(), deviceName.c_str(), runNumber.c_str(), i);
         setStringParam(i, P_listFile, filename);
         setListModeFilename(i, filename);
-        epicsSnprintf(filename, sizeof(filename), "%s/%s_%s_spec_ch%02d.spe", m_file_dir.c_str(), deviceName.c_str(), runNumber.c_str(), i);
+        epicsSnprintf(filename, sizeof(filename), "%s%s/%s_%s_spec_ch%02d.spe", fileDirPrefix.c_str(), m_file_dir.c_str(), deviceName.c_str(), runNumber.c_str(), i);
         setStringParam(i, P_energySpecFilename, filename);
         setEnergySpectrumFilename(i, 0, filename);
     }
@@ -1636,6 +1638,10 @@ void CAENMCADriver::pollerTask()
 {
     bool new_data;
 	epicsThreadSleep(0.2); // to allow class constructror to complete
+    lock();
+    std::string deviceName;
+    getStringParam(P_deviceName, deviceName);
+    unlock();
 	while(true)
 	{
 	    lock();
@@ -1685,7 +1691,7 @@ void CAENMCADriver::pollerTask()
         setStringParam(P_availableConfigurations, configs.c_str());        
         }
         catch(const std::exception& ex) {
-            std::cerr << "exception in pollerTask: " << ex.what() << std::endl;
+            std::cerr << "exception in pollerTask: " << deviceName << ": " << ex.what() << std::endl;
             setParamStatus(0, P_eventsSpecNTriggers, asynError); // to flag an alarm in the DB
         }
 		callParamCallbacks(0);
