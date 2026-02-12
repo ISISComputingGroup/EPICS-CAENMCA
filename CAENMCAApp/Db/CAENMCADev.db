@@ -22,6 +22,25 @@ record(waveform, "$(P)$(Q)DEVICE:ADDR")
     info(archive, "VAL")
 }
 
+record(stringin, "$(P)$(Q)FILEDIRPREFIX")
+{
+    field(DESC, "File Dir Prefix")
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),0,0)FILEDIRPREFIX")
+    field(SCAN, "I/O Intr")
+    info(INTEREST, "HIGH")
+}
+
+record(stringout, "$(P)$(Q)FILEDIRPREFIX:SP")
+{
+    field(DESC, "File Dir Prefix")
+    field(DTYP, "asynOctetWrite")
+    field(OUT,  "@asyn($(PORT),0,0)FILEDIRPREFIX")
+    field(PINI, "YES")
+    info(INTEREST, "HIGH")
+    info(autosaveFields, "VAL")
+}
+
 # start both channels on hexagon
 record(bo, "$(P)$(Q)BEGINRUN:SP")
 {

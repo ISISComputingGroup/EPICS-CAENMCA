@@ -383,15 +383,21 @@ record(ai, "$(P)$(Q)C$(CHAN):LISTFILE:SIZE")
 	field(SCAN, "I/O Intr")
 }
 
+# Run on 10 second scan as checking ENDBEGALL:SP.PACT is not enough
+# need to allow time for file size PV to have been updated which will
+# happen a little after ENDBEGALL has completed
+# need scan time to be > delay in ENDBEGALL 
 record(calcout, "$(P)$(Q)C$(CHAN):LISTFILE:RESTART")
 {
     field(INPA, "$(P)$(Q)C$(CHAN):LISTFILE:SIZE")
     field(INPB, "$(P)$(Q)LISTFILE:SIZE:MAX:SP")
     field(INPC, "$(P)$(Q)ENDBEGALL:SP.PACT")
-    field(CALC, "C == 0 && A > B")
+    field(INPD, "$(P)$(Q)C$(CHAN):ACQ:RUNNING")
+    field(INPE, "$(P)DAE:RUNSTATE")
+    field(CALC, "C==0&&D==1&&E==2&&A>B")
     field(OOPT, "When Non-zero")
     field(OUT, "$(P)$(Q)ENDBEGALL:SP PP")
-    field(SCAN, "1 second")
+    field(SCAN, "10 second")
 }
 
 record(longin, "$(P)$(Q)C$(CHAN):LISTMODE:MAXNEVENTS")

@@ -201,7 +201,7 @@ record(seq, "$(P)$(Q)ENDBEGALL:SP")
 {
     field(SELM, "All")
     field(LNK0, "$(P)$(Q)ENDALL:SP PP")
-    field(DLY1, "1")
+    field(DLY1, "3")
     field(LNK1, "$(P)$(Q)BEGINALL:SP PP")
 }
 
@@ -210,7 +210,7 @@ record(seq, "$(P)$(Q)ENDBEGALL:SP")
 # automatically
 record(ao, "$(P)$(Q)LISTFILE:SIZE:MAX:SP")
 {
-    field(VAL, "2000")
+    field(VAL, "1900")
     field(EGU, "MB")
     field(DESC, "Max list file size")
     field(PINI, "YES")
