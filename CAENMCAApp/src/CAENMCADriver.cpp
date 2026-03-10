@@ -390,12 +390,14 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
 		0, /* Default priority */
 		0),	/* Default stack size*/
 	m_famcode(CAEN_MCA_FAMILY_CODE_UNKNOWN),m_device_h(NULL),m_old_list_filename(2),m_file_fd(2, std::tuple<FILE*, FILE*>{NULL,NULL}),
-    m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL), m_file_dir("ibex")
+    m_event_file_last_pos(2, 0),m_frame_time(2, 0),m_max_event_time(2, 0),m_pRaw(NULL), m_file_dir("ibex"),
+    m_device_addr(deviceAddr)
 {
 	const char *functionName = "CAENMCADriver";
 
 	createParam(P_deviceNameString, asynParamOctet, &P_deviceName);
 	createParam(P_deviceAddrString, asynParamOctet, &P_deviceAddr);
+	createParam(P_numReconnectString, asynParamInt32, &P_numReconnect);
 	createParam(P_availableConfigurationsString, asynParamOctet, &P_availableConfigurations);
 	createParam(P_configurationString, asynParamOctet, &P_configuration);
 	createParam(P_numEnergySpecString, asynParamInt32, &P_numEnergySpec);
@@ -565,13 +567,10 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     
 	setStringParam(P_deviceName, deviceName);
 	setStringParam(P_deviceAddr, deviceAddr);
-	m_device_h = CAENMCA::OpenDevice(deviceAddr, NULL);
+    setIntegerParam(P_numReconnect, 0);
+    connectDevice();
 	CAENMCA::GetData(m_device_h, CAEN_MCA_DATA_BOARD_INFO, DATAMASK_BRDINFO_FAMCODE, &m_famcode);
 	getBoardInfo();
-
-    CAENMCA::getHandlesFromCollection(m_device_h, CAEN_MCA_HANDLE_CHANNEL, m_chan_h);
-    CAENMCA::getHandlesFromCollection(m_device_h, CAEN_MCA_HANDLE_HVCHANNEL, m_hv_chan_h);
-	
     getHVInfo(0);
     getHVInfo(1);
 
@@ -602,6 +601,23 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
 		printf("%s:%s: epicsThreadCreate failure\n", driverName, functionName);
 		return;
 	}
+}
+
+
+void CAENMCADriver::connectDevice()
+{
+    int nconnect = 0;
+    getIntegerParam(P_numReconnect, &nconnect);
+    setIntegerParam(P_numReconnect, ++nconnect);
+    if (m_device_h != NULL) {
+        CAENMCA::closeDevice(m_device_h);
+        m_device_h = NULL;
+    }
+    std::cerr << "Opening connection to " << m_device_addr << std::endl;
+    m_device_h = CAENMCA::OpenDevice(m_device_addr, NULL);
+    CAENMCA::getHandlesFromCollection(m_device_h, CAEN_MCA_HANDLE_CHANNEL, m_chan_h);
+    CAENMCA::getHandlesFromCollection(m_device_h, CAEN_MCA_HANDLE_HVCHANNEL, m_hv_chan_h);
+    std::cerr << "Successfully connected to " << m_device_addr << std::endl;
 }
 
 void CAENMCADriver::setRunNumberFromIRunNumber()
@@ -934,7 +950,7 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             event2_energy_group.createDataSet("event_time_max", tmax);
             event2_energy_group.createDataSet("num_events", nevents);
             event2_energy_group.createDataSet("desc", desc);
-            
+
             std::string event_energy2d_group_name = "detector_" + std::to_string(k) + "_energy2D";
             hf::Group event_energy2d_group = createNeXusGroup(raw_data_1, event_energy2d_group_name, "NXdata");
             int eventSpec_2d_nTBins = 0, eventSpec_2d_engBinGroup = 1;
@@ -947,6 +963,21 @@ std::string CAENMCADriver::createTemplateNexusFile(const std::string& filePrefix
             if (driver->m_event_spec_2d[i].size() > 0) {
                 counts2d.write_raw(driver->m_event_spec_2d[i].data());
             }
+
+            std::string energyHist_group_name = "detector_" + std::to_string(k) + "_energyHist";
+            hf::Group energyHist_group = createNeXusGroup(raw_data_1, energyHist_group_name, "NXdata");
+            hf::DataSet hist_counts = energyHist_group.createDataSet("counts", driver->m_energy_spec[i]);
+            hist_counts.createAttribute("signal", 1);
+            std::vector<double> energyHist_x(driver->m_energy_spec[i].size());
+            for(int j=0; j<energyHist_x.size(); ++j) {
+                energyHist_x[j] = scaleA * j + scaleB;
+            }
+            hf::DataSet energyHist = energyHist_group.createDataSet("energy", energyHist_x);
+            driver->getIntegerParam(i, driver->P_energySpecCounts, &nevents);
+            energyHist.createAttribute("scaleA", scaleA);
+            energyHist.createAttribute("scaleB", scaleB);
+            energyHist_group.createDataSet("num_events", nevents);
+
             ++k;
         }
     }
@@ -1636,68 +1667,70 @@ void CAENMCADriver::energySpectrumSetProperty(CAEN_MCA_HANDLE channel, int32_t s
 
 void CAENMCADriver::pollerTask()
 {
-    bool new_data;
-	epicsThreadSleep(0.2); // to allow class constructror to complete
+    bool new_data, reconnect = false;
+    epicsThreadSleep(0.2); // to allow class constructror to complete
     lock();
     std::string deviceName;
     getStringParam(P_deviceName, deviceName);
     unlock();
-	while(true)
-	{
-	    lock();
+    while(true)
+    {
+        lock();
         
         try {
-
-        //std::cerr << "hv0 on " << isHVOn(m_hv_chan_h[0]) << std::endl;
-        //std::cerr << "hv1 on " << isHVOn(m_hv_chan_h[1]) << std::endl;
-	
-	    //std::cerr << isAcqRunning() << " " << isAcqRunning(m_chan_h[0]) << " " << isAcqRunning(m_chan_h[1]) << std::endl;
-	    for(int i=0;i<2; ++i)
-		{
-	        getEnergySpectrum(i, 0, m_energy_spec[i]);
-		    doCallbacksInt32Array(m_energy_spec[i].data(), m_energy_spec[i].size(), P_energySpec, i);
-            getHVInfo(i);
-            getChannelInfo(i);
-		    getLists(i);
-            if (!isAcqRunning(m_chan_h[i])) {
-                setDoubleParam(i, P_eventSpecRate, 0.0);
-                setDoubleParam(i, P_eventsSpecTriggerRate, 0.0);
+            if (reconnect) {
+                epicsThreadSleep(5.0); // sleep to avoid too many reconnections
+                connectDevice();
+                setParamStatus(0, P_eventsSpecNTriggers, asynSuccess); // to clear an alarm in the DB
+                reconnect = false;
             }
-            new_data = processListFile(i);
-            setIntegerParam(i, P_loadDataStatus, 2);
-		    callParamCallbacks(i);
-			updateAD(i, new_data);
-		    doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
-		    doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
-		    doCallbacksInt32Array(m_energy_spec_event[i].data(), m_energy_spec_event[i].size(), P_energySpecEvent, i);
-		    doCallbacksInt32Array(m_energy_spec2_event[i].data(), m_energy_spec2_event[i].size(), P_energySpec2Event, i);
-            setIntegerParam(i, P_loadDataStatus, 0);
-		    callParamCallbacks(i);
-		}
-        bool acqRunning = isAcqRunning();
-        setIntegerParam(P_acqRunning, (acqRunning ? 1 : 0));
-		std::vector<std::string> configs_v;
-        listConfigurations(configs_v);
-        std::string configs;
-
-        for(int i=0; i<configs_v.size(); ++i)
-        {
-            configs +=  configs_v[i];
-            if (i != configs_v.size() - 1)
+            for(int i=0;i<2; ++i)
             {
-                configs += ",";
+                getEnergySpectrum(i, 0, m_energy_spec[i]);
+                doCallbacksInt32Array(m_energy_spec[i].data(), m_energy_spec[i].size(), P_energySpec, i);
+                getHVInfo(i);
+                getChannelInfo(i);
+                getLists(i);
+                if (!isAcqRunning(m_chan_h[i])) {
+                    setDoubleParam(i, P_eventSpecRate, 0.0);
+                    setDoubleParam(i, P_eventsSpecTriggerRate, 0.0);
+                }
+                new_data = processListFile(i);
+                setIntegerParam(i, P_loadDataStatus, 2);
+                callParamCallbacks(i);
+                updateAD(i, new_data);
+                doCallbacksFloat64Array(m_event_spec_x[i].data(), m_event_spec_x[i].size(), P_eventsSpecX, i);
+                doCallbacksFloat64Array(m_event_spec_y[i].data(), m_event_spec_y[i].size(), P_eventsSpecY, i);
+                doCallbacksInt32Array(m_energy_spec_event[i].data(), m_energy_spec_event[i].size(), P_energySpecEvent, i);
+                doCallbacksInt32Array(m_energy_spec2_event[i].data(), m_energy_spec2_event[i].size(), P_energySpec2Event, i);
+                setIntegerParam(i, P_loadDataStatus, 0);
+                callParamCallbacks(i);
             }
-        }        
-        setStringParam(P_availableConfigurations, configs.c_str());        
+            bool acqRunning = isAcqRunning();
+            setIntegerParam(P_acqRunning, (acqRunning ? 1 : 0));
+            std::vector<std::string> configs_v;
+            listConfigurations(configs_v);
+            std::string configs;
+
+            for(int i=0; i<configs_v.size(); ++i)
+            {
+                configs +=  configs_v[i];
+                if (i != configs_v.size() - 1)
+                {
+                    configs += ",";
+                }
+            }        
+            setStringParam(P_availableConfigurations, configs.c_str());        
         }
         catch(const std::exception& ex) {
             std::cerr << "exception in pollerTask: " << deviceName << ": " << ex.what() << std::endl;
             setParamStatus(0, P_eventsSpecNTriggers, asynError); // to flag an alarm in the DB
+            reconnect = true;
         }
-		callParamCallbacks(0);
-		unlock();
-		epicsThreadSleep(1.0);
-	}
+        callParamCallbacks(0);
+        unlock();
+        epicsThreadSleep(1.0);
+    }
 }
 
 asynStatus CAENMCADriver::readOctet(asynUser *pasynUser, char *value, size_t maxChars, size_t *nActual, int *eomReason)
