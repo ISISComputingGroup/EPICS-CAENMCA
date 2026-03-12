@@ -30,6 +30,7 @@ public:
 	virtual void report(FILE* fp, int details);
 
 private:
+    void connectDevice();
     void updateAD(int addr, bool new_events);
     void clearEnergySpectrum(int channel_id);
     NDArray* m_pRaw;
@@ -39,6 +40,7 @@ private:
     template <typename epicsTypeOut, typename epicsTypeIn> 
         int computeArray(int addr, const std::vector<epicsTypeIn>& data, int maxSizeX, int maxSizeY);
     CAEN_MCA_HANDLE m_device_h;
+    std::string m_device_addr;
     epicsTime m_start_time[2];
     epicsTime m_stop_time[2];
     std::vector<CAEN_MCA_HANDLE> m_chan_h;
@@ -123,6 +125,7 @@ private:
 
 	int P_deviceName; // string
 	int P_deviceAddr; // string
+	int P_numReconnect; // int
     int P_availableConfigurations; // string
     int P_configuration; // string
 	int P_numEnergySpec; // int
@@ -257,6 +260,7 @@ private:
 
 #define P_deviceNameString "DEVICENAME"
 #define P_deviceAddrString "DEVICEADDR"
+#define P_numReconnectString "NUMRECONNECT"
 #define P_availableConfigurationsString "CONFIG_AVAIL"
 #define P_configurationString   "CONFIG"
 #define P_numEnergySpecString "NUMENERGYSPEC"

@@ -22,6 +22,15 @@ record(waveform, "$(P)$(Q)DEVICE:ADDR")
     info(archive, "VAL")
 }
 
+record(longin, "$(P)$(Q)NUMRECONNECT")
+{
+    field(DTYP, "asynInt32")
+    field(INP, "@asyn($(PORT),0,0)NUMRECONNECT")
+    field(SCAN, "I/O Intr")
+    field(EGU, "")
+    info(archive, "VAL")
+}
+
 record(stringin, "$(P)$(Q)FILEDIRPREFIX")
 {
     field(DESC, "File Dir Prefix")
