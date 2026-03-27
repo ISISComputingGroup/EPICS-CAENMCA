@@ -164,5 +164,6 @@ record(bi, "$(P)$(Q)TIMEREGS")
 	field(INP, "@asyn($(PORT),0,0)TIMINGREGISTERS")
 	field(ZNAM, "Error")
 	field(ONAM, "OK")
+    field(ZSV, "MAJOR")
 	field(SCAN, "I/O Intr")
 }
