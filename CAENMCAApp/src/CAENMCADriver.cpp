@@ -1257,6 +1257,11 @@ void CAENMCADriver::getHVInfo(uint32_t hv_chan_id)
 
 void CAENMCADriver::stopAcquisition(int addr, int value)
 {
+    std::string deviceName;
+    getStringParam(P_deviceName, deviceName);
+    if (!checkTimingRegisters()) {
+        std::cerr << "WARNING: Timing registers not set on " << deviceName << std::endl;
+    }
     if (value < 2) // is it a bo record sending 0 or 1, if so single channel and use asyn addr for channel
     {
         controlAcquisition(1 << addr, false);
