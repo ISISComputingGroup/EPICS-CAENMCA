@@ -1674,7 +1674,7 @@ void CAENMCADriver::energySpectrumSetProperty(CAEN_MCA_HANDLE channel, int32_t s
 
 void CAENMCADriver::pollerTask()
 {
-    bool new_data, reconnect = false;
+    bool new_data, reconnect = false, warn_timing_reg = true;
     epicsThreadSleep(0.2); // to allow class constructror to complete
     lock();
     std::string deviceName;
@@ -1690,6 +1690,7 @@ void CAENMCADriver::pollerTask()
                 connectDevice();
                 setParamStatus(0, P_eventsSpecNTriggers, asynSuccess); // to clear an alarm in the DB
                 reconnect = false;
+                warn_timing_reg = true;
             }
             for(int i=0;i<2; ++i)
             {
@@ -1713,6 +1714,14 @@ void CAENMCADriver::pollerTask()
                 setIntegerParam(i, P_loadDataStatus, 0);
                 callParamCallbacks(i);
             }
+            if (!checkTimingRegisters()) {
+                if (warn_timing_reg) {
+                    std::cerr << "WARNING: Timing registers not set on " << deviceName << std::endl;
+                    warn_timing_reg = false;
+                }
+            } else {
+                warn_timing_reg = true;
+            }
             bool acqRunning = isAcqRunning();
             setIntegerParam(P_acqRunning, (acqRunning ? 1 : 0));
             std::vector<std::string> configs_v;
@@ -1727,7 +1736,7 @@ void CAENMCADriver::pollerTask()
                     configs += ",";
                 }
             }        
-            setStringParam(P_availableConfigurations, configs.c_str());        
+            setStringParam(P_availableConfigurations, configs.c_str());
         }
         catch(const std::exception& ex) {
             std::cerr << "exception in pollerTask: " << deviceName << ": " << ex.what() << std::endl;
