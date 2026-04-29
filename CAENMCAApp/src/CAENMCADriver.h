@@ -28,6 +28,12 @@ public:
     virtual asynStatus readEnum(asynUser *pasynUser, char *strings[], int values[], int severities[], size_t nElements, size_t *nIn);
     virtual void setShutter(int addr, int open);
 	virtual void report(FILE* fp, int details);
+    static std::string createTemplateNexusFile(const std::string& filePrefix, const char* runNumber);
+    static std::string makeCopyDataArgs(int addr, const std::string& share_path, const std::string& file_dir,
+                      const std::string& list_filename, const std::string& deviceName,
+                      double energyScaleA, double energyScaleB);
+    static void copyData(const std::string& dataFile, const std::string& filePrefix,
+                       const char* runNumber, const std::string& copyDataArgs);
 
 private:
     void updateAD(int addr, bool new_events);
@@ -111,13 +117,11 @@ private:
     std::string getEnergySpectrumFilename(int32_t channel_id, int32_t spectrum_id);
     std::string getListModeFilename(int32_t channel_id);
     std::string makeCopyDataArgs(int addr);
-    static void copyData(const std::string& dataFile, const std::string& filePrefix, const char* runNumber, const std::string& copyDataArgs);
     static void setRunNumberFromIRunNumber();
     bool setTimingRegisters();
     bool checkTimingRegisters();
     void cycleAcquisition();
     void closeListFiles();
-    static std::string createTemplateNexusFile(const std::string& filePrefix, const char* runNumber);
 
 #define FIRST_CAEN_PARAM P_deviceName
 

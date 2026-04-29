@@ -585,7 +585,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
 
     // setTimingRegisters();
     if (!checkTimingRegisters()) {
-        std::cerr << "WARNING: Timing registers not set" << std::endl;
+        std::cerr << "WARNING: Timing registers not set on " << deviceName << std::endl;
     }
 
     std::string ethPrefix = "eth://", deviceAddr_s(deviceAddr);
@@ -799,10 +799,16 @@ std::string CAENMCADriver::makeCopyDataArgs(int addr)
     getDoubleParam(addr, P_energySpecScaleA, &energyScaleA);
     getDoubleParam(addr, P_energySpecScaleB, &energyScaleB);
     getStringParam(P_deviceName, deviceName);
-    std::string dir_win = m_file_dir;
+    return makeCopyDataArgs(addr, m_share_path, m_file_dir, list_filename, deviceName, energyScaleA, energyScaleB);
+}
+
+std::string CAENMCADriver::makeCopyDataArgs(int addr, const std::string& share_path, const std::string& file_dir,
+  const std::string& list_filename, const std::string& deviceName, double energyScaleA, double energyScaleB)
+{
+    std::string dir_win = file_dir;
     std::replace(dir_win.begin(), dir_win.end(), '/', '\\');
     std::ostringstream args;
-    args << deviceName << " " << addr << " " << m_share_path << "\\" << dir_win;
+    args << deviceName << " " << addr << " " << share_path << "\\" << dir_win;
     auto const pos = list_filename.find_last_of("/\\");
     std::string filename;
     if (pos != std::string::npos) {
@@ -817,7 +823,7 @@ std::string CAENMCADriver::makeCopyDataArgs(int addr)
     args << " " << filename << " " << energyScaleA << " " << energyScaleB;
     return args.str();
 }
-    
+
 // copyData() doesn't work on linux
 void CAENMCADriver::copyData(const std::string& dataFile, const std::string& filePrefix,
                              const char* runNumber, const std::string& copyDataArgs)
@@ -1239,8 +1245,10 @@ void CAENMCADriver::stopAcquisition(int addr, int value)
 void CAENMCADriver::startAcquisition(int addr, int value)
 {
     // setTimingRegisters();
+    std::string deviceName;
+    getStringParam(P_deviceName, deviceName);
     if (!checkTimingRegisters()) {
-        std::cerr << "WARNING: Timing registers not set" << std::endl;
+        std::cerr << "WARNING: Timing registers not set on " << deviceName << std::endl;
     }
     if (value < 2) // is it a bo record sending 0 or 1, if so single channel and use asyn addr for channel
     {

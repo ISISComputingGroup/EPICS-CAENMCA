@@ -24,7 +24,7 @@ CAENMCA_DIR = $(CAENMCALIB)/lib/$(CAENARCH)
 endif
 LIBRARY_IOC += CAENMCASup 
 
-PROD_HOST += filereader fileconverter getblocks_main
+PROD_HOST += filereader fileconverter getblocks_main filegenerator
 filereader_SRCS += filereader.cpp
 filereader_LIBS += $(EPICS_BASE_HOST_LIBS)
 
@@ -33,6 +33,12 @@ fileconverter_SRCS += fileconverter.cpp h5nexus.cpp getblocks.cpp
 fileconverter_LIBS += $(LIB_LIBS)
 fileconverter_SYS_LIBS += $(LIB_SYS_LIBS)
 fileconverter_LIBS += $(MYSQLLIB) $(EPICS_BASE_HOST_LIBS)
+
+filegenerator_SRCS += filegenerator.cpp
+#filegenerator_LIBS += hdf5_hl hdf5 szip zlib jpeg
+filegenerator_LIBS += CAENMCASup $(LIB_LIBS)
+filegenerator_SYS_LIBS += $(LIB_SYS_LIBS)
+filegenerator_LIBS += $(MYSQLLIB) $(EPICS_BASE_HOST_LIBS)
 
 getblocks_main_SRCS += getblocks_main.cpp getblocks.cpp
 getblocks_main_LIBS += $(MYSQLLIB) $(EPICS_BASE_HOST_LIBS)
