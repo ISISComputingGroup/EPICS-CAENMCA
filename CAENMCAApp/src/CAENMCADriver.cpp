@@ -94,16 +94,6 @@ static int spawnCommand(const std::string& program, const std::string& args)
 
 #endif
 
-/// EPICS driver report function for iocsh dbior command
-void CAENMCADriver::report(FILE* fp, int details)
-{
-    uint32_t val0 = 0, val1 = 0;
-    readRegister(0x10B8, val0);
-    readRegister(0x11B8, val1);
-    fprintf(fp, "0x10B8 and 0x11B8 registers for setting timing are: %u %u\n", val0, val1);
-    ADDriver::report(fp, details);
-}
-
 void CAENMCADriver::setADAcquire(int addr, int acquire)
 {
     int adstatus;
@@ -235,6 +225,10 @@ class CAENMCAException : public std::runtime_error
         throw CAENMCAException(__func, __ret); \
     }
 
+static std::map<std::string,double> sim_double_params;
+static std::map<std::string,std::string> sim_string_params;
+static int sim_handle_counter = 1;
+
 struct CAENMCA
 {
     static bool simulate;
@@ -247,7 +241,8 @@ struct CAENMCA
             h = CAEN_MCA_OpenDevice(path.c_str(), &retcode, index);
             ERROR_CHECK("CAENMCA::OpenDevice()", retcode);
         } else {
-            std::cerr << "Opening simulated device for " << path << std::endl;
+            std::cerr << "Opening simulated device for " << path << " id " << sim_handle_counter << std::endl;
+            h = (CAEN_MCA_HANDLE)(sim_handle_counter++);
         }
         return h;
     }
@@ -261,7 +256,103 @@ struct CAENMCA
 
     static void GetData(CAEN_MCA_HANDLE handle, CAEN_MCA_DataType_t dataType, uint64_t dataMask, ...)
     {
-        if (!simulate) {
+        if (simulate) {
+            va_list args;
+            va_start(args, dataMask);
+            if (dataType == CAEN_MCA_DATA_PARAMETER_VALUE) {
+                const char* param_name = (const char*)handle;
+                if (dataMask == DATAMASK_VALUE_NUMERIC) {
+                    double* value = va_arg(args, double*);
+                    *value = sim_double_params[param_name];
+                } else if (dataMask == DATAMASK_VALUE_CODENAME) {
+                    char* value = va_arg(args, char*);
+                    strcpy(value, sim_string_params[param_name].c_str());
+                } else {
+                    std::cerr << "getdata: unknown datamask for CAEN_MCA_DATA_PARAMETER_VALUE " << dataMask << std::endl;
+                }
+            } else if (dataType == CAEN_MCA_DATA_LIST_MODE) {
+                if (dataMask & DATAMASK_LIST_ENABLE) {
+                    dataMask &= ~DATAMASK_LIST_ENABLE;
+                    *va_arg(args, uint32_t*) = sim_double_params["LIST_ENABLE" + std::to_string((unsigned long)handle)];
+                }
+                if (dataMask & DATAMASK_LIST_SAVEMODE) {
+                    dataMask &= ~DATAMASK_LIST_SAVEMODE;
+                    *va_arg(args, CAEN_MCA_ListSaveMode_t*) = (CAEN_MCA_ListSaveMode_t)sim_double_params["LIST_SAVEMODE" + std::to_string((unsigned long)handle)];
+                }
+                if (dataMask & DATAMASK_LIST_FILENAME) {
+                    dataMask &= ~DATAMASK_LIST_FILENAME;
+                    strcpy(va_arg(args, char*), sim_string_params["LIST_FILENAME" + std::to_string((unsigned long)handle)].c_str());
+                }
+                if (dataMask & DATAMASK_LIST_FILE_DATAMASK) {
+                    dataMask &= ~DATAMASK_LIST_FILE_DATAMASK;
+                    *va_arg(args, uint32_t*) = sim_double_params["LIST_FILE_DATAMASK" + std::to_string((unsigned long)handle)];
+                }
+                if (dataMask & DATAMASK_LIST_GETFAKEEVTS) {
+                    dataMask &= ~DATAMASK_LIST_GETFAKEEVTS;
+                    *va_arg(args, uint32_t*) = 0;
+                }
+                if (dataMask & DATAMASK_LIST_MAXNEVTS) {
+                    dataMask &= ~DATAMASK_LIST_MAXNEVTS;
+                    *va_arg(args, uint32_t*) = 1024;
+                }
+                if (dataMask & DATAMASK_LIST_NEVTS) {
+                    dataMask &= ~DATAMASK_LIST_NEVTS;
+                    *va_arg(args, uint32_t*) = 0;
+                }
+                if (dataMask != 0) {
+                    std::cerr << "getdata: unknown datamask for CAEN_MCA_DATA_LIST_MODE " << dataMask << std::endl;
+                }
+            } else if (dataType == CAEN_MCA_DATA_ENERGYSPECTRUM) {
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_ARRAY) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_ARRAY;
+                    memset(va_arg(args, uint32_t*), 0, ENERGYSPECTRUM_MAXLEN * sizeof(uint32_t));
+                }                    
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_RTIME) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_RTIME;
+                    *va_arg(args, uint64_t*) = 0;
+                }                    
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_LTIME) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_LTIME;
+                    *va_arg(args, uint64_t*) = 0;
+                }                    
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_DTIME) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_DTIME;
+                    *va_arg(args, uint64_t*) = 0;
+                }                    
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_OVERFLOW) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_OVERFLOW;
+                    *va_arg(args, uint32_t*) = 0;
+                }                    
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_UNDERFLOW) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_UNDERFLOW;
+                    *va_arg(args, uint32_t*) = 0;
+                }                    
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_NENTRIES) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_NENTRIES;
+                    *va_arg(args, uint64_t*) = 0;
+                }                    
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_NROIS) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_NROIS;
+                    *va_arg(args, uint32_t*) = 0;
+                }                    
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_FILENAME) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_FILENAME;
+                    strcpy(va_arg(args, char*), sim_string_params["ES_FILENAME" + std::to_string((unsigned long)handle)].c_str());
+                }
+                if (dataMask & DATAMASK_ENERGY_SPECTRUM_AUTOSAVE_PERIOD) {
+                    dataMask &= ~DATAMASK_ENERGY_SPECTRUM_AUTOSAVE_PERIOD;
+                    *va_arg(args, uint32_t*) = 0;
+                }                    
+                if (dataMask != 0) {
+                    std::cerr << "getdata: unknown datamask for CAEN_MCA_DATA_ENERGYSPECTRUM " << dataMask << std::endl;
+                }
+            } else if (dataType & (CAEN_MCA_DATA_HVCHANNEL_INFO|CAEN_MCA_DATA_HVRANGE_INFO|CAEN_MCA_DATA_CHANNEL_INFO)) {
+                ;
+            } else {
+                std::cerr << "getdata: unknown datatype " << dataType << std::endl;
+            }
+            va_end(args);
+        } else {
             va_list args;
             va_start(args, dataMask);
             int32_t retcode = CAEN_MCA_GetDataV(handle, dataType, dataMask, args);
@@ -272,7 +363,52 @@ struct CAENMCA
 
     static void SetData(CAEN_MCA_HANDLE handle, CAEN_MCA_DataType_t dataType, uint64_t dataMask, ...)
     {
-        if (!simulate) {
+        if (simulate) {
+            va_list args;
+            va_start(args, dataMask);
+            if (dataType == CAEN_MCA_DATA_PARAMETER_VALUE) {
+                const char* param_name = (const char*)handle;
+                if (dataMask == DATAMASK_VALUE_NUMERIC) {
+                    double value = va_arg(args, double);
+                    sim_double_params[param_name] = value;
+                } else if (dataMask == DATAMASK_VALUE_CODENAME) {
+                    const char* value = va_arg(args, char*);
+                    sim_string_params[param_name] = value;
+                } else {
+                    std::cerr << "setdata: unknown datamask for CAEN_MCA_DATA_PARAMETER_VALUE " << dataMask << std::endl;
+                }
+            } else if (dataType == CAEN_MCA_DATA_LIST_MODE) {
+                if (dataMask & DATAMASK_LIST_ENABLE) {
+                    dataMask &= ~DATAMASK_LIST_ENABLE;
+                    sim_double_params["LIST_ENABLE" + std::to_string((unsigned long)handle)] = va_arg(args, uint32_t);
+                }
+                if (dataMask & DATAMASK_LIST_SAVEMODE) {
+                    dataMask &= ~DATAMASK_LIST_SAVEMODE;
+                    sim_double_params["LIST_SAVEMODE" + std::to_string((unsigned long)handle)] = va_arg(args, uint32_t);
+                }
+                if (dataMask & DATAMASK_LIST_FILENAME) {
+                    dataMask &= ~DATAMASK_LIST_FILENAME;
+                    sim_string_params["LIST_FILENAME" + std::to_string((unsigned long)handle)] = va_arg(args, char*);
+                }
+                if (dataMask & DATAMASK_LIST_FILE_DATAMASK) {
+                    dataMask &= ~DATAMASK_LIST_FILE_DATAMASK;
+                    sim_double_params["LIST_FILE_DATAMASK" + std::to_string((unsigned long)handle)] = va_arg(args, uint32_t);
+                }
+                if (dataMask != 0) {
+                    std::cerr << "setdata: unknown datamask for CAEN_MCA_DATA_LIST_MODE " << dataMask << std::endl;
+                }
+            } else if (dataType == CAEN_MCA_DATA_ENERGYSPECTRUM) {
+                if (dataMask == DATAMASK_ENERGY_SPECTRUM_FILENAME) {
+                    const char* value = va_arg(args, char*);
+                    sim_string_params["ES_FILENAME" + std::to_string((unsigned long)handle)] = value;
+                } else {
+                    std::cerr << "setdata: unknown datamask CAEN_MCA_DATA_ENERGYSPECTRUM " << dataMask << std::endl;
+                }                    
+            } else {
+                std::cerr << "setdata: unknown datatype " << dataType << std::endl;
+            }
+            va_end(args);
+        } else {
             va_list args;
             va_start(args, dataMask);
             int32_t retcode = CAEN_MCA_SetDataV(handle, dataType, dataMask, args);
@@ -283,7 +419,13 @@ struct CAENMCA
     
     static void SendCommand(CAEN_MCA_HANDLE handle, CAEN_MCA_CommandType_t cmdType, uint64_t cmdMaskIn, uint64_t cmdMaskOut, ...)
     {
-        if (!simulate) {
+        if (simulate) {
+            if (cmdType == CAEN_MCA_CMD_ACQ_START) {
+                sim_double_params["PARAM_ACQRUNNING"+ std::to_string((unsigned long)handle)] = 1.0;
+            } else if (cmdType == CAEN_MCA_CMD_ACQ_STOP) {
+                sim_double_params["PARAM_ACQRUNNING"+ std::to_string((unsigned long)handle)] = 0.0;
+            }
+        } else {
             va_list args;
             va_start(args, cmdMaskOut);
             int32_t retcode = CAEN_MCA_SendCommandV(handle, cmdType, cmdMaskIn, cmdMaskOut, args);
@@ -301,6 +443,8 @@ struct CAENMCA
             {
                 throw CAENMCAException("GetChildHandle(): failed");
             }
+        } else {
+            h = (CAEN_MCA_HANDLE)(100 * (unsigned)handle + 10 * handleType + index + 1);
         }
         return h;
     }
@@ -308,7 +452,13 @@ struct CAENMCA
     static CAEN_MCA_HANDLE GetChildHandleByName(CAEN_MCA_HANDLE handle, CAEN_MCA_HandleType_t handleType, const std::string& name)
     {
         CAEN_MCA_HANDLE h = NULL;
-        if (!simulate) {
+        if (simulate) {
+            if (handleType == CAEN_MCA_HANDLE_PARAMETER) {
+                return (CAEN_MCA_HANDLE)strdup((name + std::to_string((unsigned long)handle)).c_str());
+            } else {
+                std::cerr << "GetChildHandleByName " << name << std::endl;
+            }
+        } else {
             h = CAEN_MCA_GetChildHandleByName(handle, handleType, name.c_str());
             if (h == NULL)
             {
@@ -322,8 +472,8 @@ struct CAENMCA
     {
         handles.resize(0);
         if (simulate) {
-            handles.push_back(NULL);
-            handles.push_back(NULL);
+            handles.push_back((CAEN_MCA_HANDLE)(10 * (unsigned)parent + 1));
+            handles.push_back((CAEN_MCA_HANDLE)(10 * (unsigned)parent + 2));
             return;
         }
         CAEN_MCA_HANDLE collection = CAENMCA::GetChildHandle(parent, CAEN_MCA_HANDLE_COLLECTION, handleType);
@@ -373,7 +523,27 @@ struct CAENMCA
 
 bool CAENMCA::simulate = false;
 
-/// Constructor for the webgetDriver class.
+/// EPICS driver report function for iocsh dbior command
+void CAENMCADriver::report(FILE* fp, int details)
+{
+    uint32_t val0 = 0, val1 = 0;
+    readRegister(0x10B8, val0);
+    readRegister(0x11B8, val1);
+    fprintf(fp, "0x10B8 and 0x11B8 registers for setting timing are: %u %u\n", val0, val1);
+    ADDriver::report(fp, details);
+    if (CAENMCA::simulate) {
+        fprintf(fp, "sim double\n");
+        for(const auto& pair : sim_double_params) {
+            fprintf(fp, "%s = %f\n", pair.first.c_str(), pair.second);
+        }            
+        fprintf(fp, "sim string\n");
+        for(const auto& pair : sim_string_params) {
+            fprintf(fp, "%s = \"%s\"\n", pair.first.c_str(), pair.second.c_str());
+        }            
+    }
+}
+
+/// Constructor
 /// Calls constructor for the asynPortDriver base class and sets up driver parameters.
 ///
 /// \param[in] portName @copydoc initArg0
@@ -555,7 +725,7 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
         status |= setDoubleParam(i, P_eventSpecRate, 0.0);
     }
 
-        if (status) {
+    if (status) {
         printf("%s: unable to set CAENMCA parameters\n", functionName);
         return;
     }
@@ -592,7 +762,10 @@ CAENMCADriver::CAENMCADriver(const char *portName, const char* deviceAddr, const
     if (!deviceAddr_s.compare(0, ethPrefix.size(), ethPrefix)) {
         m_share_path = std::string("\\\\") + deviceAddr_s.substr(ethPrefix.size()) + "\\storage";
     }
-
+    if (getenv("SHARE_PATH") != NULL) {
+        m_share_path = std::string(getenv("SHARE_PATH")) + "\\" + deviceName;
+    }
+    std::cerr << "Using share path " << m_share_path << std::endl;
 	if (epicsThreadCreate("CAENMCADriverPoller",
 		epicsThreadPriorityMedium,
 		epicsThreadGetStackSize(epicsThreadStackMedium),
@@ -839,22 +1012,27 @@ void CAENMCADriver::copyData(const std::string& dataFile, const std::string& fil
                              const char* runNumber, const std::string& copyDataArgs)
 {
 	static const char* copycmd = getenv("HEXAGON_COPYCMD");
-    if (copycmd == NULL) {
-        std::cerr << "No HEXAGON_COPYCMD defined" << std::endl;
+	static const char* convertcmd = getenv("HEXAGON_CONVERTCMD");
+    if (copycmd == NULL || convertcmd == NULL) {
+        std::cerr << "No HEXAGON_COPYCMD/HEXAGON_CONVERTCMD defined" << std::endl;
         return;
     }
     std::string copycmd_s(copycmd);
 	std::replace(copycmd_s.begin(), copycmd_s.end(), '/', '\\');
+    std::string convertcmd_s(convertcmd);
+	std::replace(convertcmd_s.begin(), convertcmd_s.end(), '/', '\\');
     std::ostringstream args;
     args << dataFile << " " << filePrefix << " " << runNumber << " " << copyDataArgs;
-	std::cerr << "Running \"" << copycmd_s << "\" " << args.str() << std::endl;
 #ifdef _WIN32
     if (CAENMCA::simulate) {
-        std::cerr << "Not running copy command as simulation mode" << std::endl;
+        std::cerr << "Running converter but not copier command as simulation mode" << std::endl;
+	    std::cerr << "Running \"" << convertcmd_s << "\" " << args.str() << std::endl;
+        spawnCommand(convertcmd_s, args.str());
     } else {
+	    std::cerr << "Running \"" << copycmd_s << "\" " << args.str() << std::endl;
         spawnCommand(copycmd_s, args.str());
-        epicsThreadSleep(1.0);
     } 
+    epicsThreadSleep(1.0);
 #endif /* _WIN32 */
 }
 
