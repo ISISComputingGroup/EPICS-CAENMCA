@@ -2304,23 +2304,38 @@ bool CAENMCADriver::processListFile(int channel_id)
     if ( (ret = _fseeki64(f, 0, SEEK_END)) != 0 )
     {
         std::cerr << "fseek forward to end error: " << ret << std::endl;
+        setParamStatus(channel_id, 	P_listFileSize, asynError);
+        callParamCallbacks(channel_id);
         if (f != NULL) {
             fclose(f);
             f = NULL;
         }
         return new_data;
     }   
-    if ( (current_pos = _ftelli64(f)) == -1)
+    if ( (current_pos = _ftelli64(f)) == -1 )
     {
         std::cerr << "ftell current position error" << std::endl;
+        setParamStatus(channel_id, 	P_listFileSize, asynError);
+        callParamCallbacks(channel_id);
+        if (f != NULL) {
+            fclose(f);
+            f = NULL;
+        }
         return new_data;
     }
     if (_fseeki64(f, m_event_file_last_pos[channel_id], SEEK_SET) != 0)
     {
         std::cerr << "fseek back to last position error" << std::endl;
+        setParamStatus(channel_id, 	P_listFileSize, asynError);
+        callParamCallbacks(channel_id);
+        if (f != NULL) {
+            fclose(f);
+            f = NULL;
+        }
         return new_data;
     }   
     setDoubleParam(channel_id, 	P_listFileSize, (double)current_pos / (1024.0 * 1024.0)); // convert to MBytes
+    setParamStatus(channel_id, 	P_listFileSize, asynSuccess);
     new_bytes = current_pos - m_event_file_last_pos[channel_id];
 	if (new_bytes < 0)
 	{
