@@ -2211,6 +2211,7 @@ bool CAENMCADriver::processListFile(int channel_id)
     int nfakeevent = 0, nimpdynamsatevent = 0, npileupevent = 0;
     int neventenergyoutsca = 0, neventdursatinhibit = 0;
     int nevent2dnotbinned = 0, neventnotbinned = 0, neventenergydiscard = 0, neventenergygt0 = 0;
+    int ret;
     double ev_tmin = 0.0, ev_tmax = 0.0;
     FILE* save_f = NULL;
     int64_t save_event_file_last_pos = 0;
@@ -2300,19 +2301,23 @@ bool CAENMCADriver::processListFile(int channel_id)
         m_event_file_last_pos[channel_id] = 0;
         current_pos = 0;
     }
-    if (_fseeki64(f, 0, SEEK_END) != 0)
+    if ( (ret = _fseeki64(f, 0, SEEK_END)) != 0 )
     {
-        std::cerr << "fseek forward error" << std::endl;
+        std::cerr << "fseek forward to end error: " << ret << std::endl;
+        if (f != NULL) {
+            fclose(f);
+            f = NULL;
+        }
         return new_data;
     }   
     if ( (current_pos = _ftelli64(f)) == -1)
     {
-        std::cerr << "ftell curr error" << std::endl;
+        std::cerr << "ftell current position error" << std::endl;
         return new_data;
     }
     if (_fseeki64(f, m_event_file_last_pos[channel_id], SEEK_SET) != 0)
     {
-        std::cerr << "fseek back error" << std::endl;
+        std::cerr << "fseek back to last position error" << std::endl;
         return new_data;
     }   
     setDoubleParam(channel_id, 	P_listFileSize, (double)current_pos / (1024.0 * 1024.0)); // convert to MBytes
