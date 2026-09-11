@@ -706,7 +706,8 @@ void CAENMCADriver::endRun()
     g_drivers[0]->getStringParam(g_drivers[0]->P_RBNumber, rb_number);
     getStringParam(P_deviceName, deviceName);
 
-    epicsSnprintf(filename, sizeof(filename), "%s%s_%s_info.txt", filePrefix.c_str(), runNumber.c_str(), deviceName.c_str());
+    epicsSnprintf(filename, sizeof(filename), "c:\\data\\%s%s_%s_info.txt",
+                  filePrefix.c_str(), runNumber.c_str(), deviceName.c_str());
     std::fstream f1, f2;
     
     stopAcquisition(0, 3);
