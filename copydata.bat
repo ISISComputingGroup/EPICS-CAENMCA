@@ -16,7 +16,8 @@ xcopy /d /y /i o:\setcycle.cmd "%TMP%"
 REM now use the cycle number
 CALL "%TMP%\setcycle.cmd"
 
-set "DSTDIR=d:\data\%CYCLE%\autoreduced"
+set "DSTDIR=d:\data\%CYCLE%"
+set "DSTDIREXTRA=d:\data\%CYCLE%\autoreduced"
 set "JOURNALDIR=d:\logs\journal"
 REM for testing
 REM set "DSTDIR=\\olympic\babylon5\scratch\freddie"
@@ -30,6 +31,9 @@ if not exist %JOURNALDIR% (
 REM now send to archiver (creating the cycle directory if needed)
 if not exist %DSTDIR% (
 	md %DSTDIR%
+)
+if not exist %DSTDIREXTRA% (
+	md %DSTDIREXTRA%
 )
 
 set "DATAFILE=%ARG1%"
@@ -68,20 +72,24 @@ REM wait for files to close
 
 call %~dp0run_converter.bat %*
 
+xcopy /y /v /d /c "c:\data\%FILEPREFIX%%RUNNUMBER%_hex*_info.txt" "C:\Data\Export only"
+xcopy /y /v /d /c "c:\data\journal_*.txt" "C:\Data\Export only"
+xcopy /y /v /d /c "%DATAFILE%" "C:\Data\Export only"
+
 @echo Moving files to %DSTDIR%
 
 REM update journal files
-robocopy "c:\data" "%JOURNALDIR%" "journal_*.txt" /NJH /NJS /NP /R:2 /copy:DT
-robocopy "%WINTOP%\iocBoot\%IOC%" "%DSTDIR%" "%FILEPREFIX%%RUNNUMBER%_*.*" /MOV /NJH /NJS /NP /copy:DT
+robocopy "c:\data" "%JOURNALDIR%" "journal_*.txt" /NJH /NJS /NP /copy:DT /XX /R:2
+robocopy "c:\data" "%DSTDIR%" "%FILEPREFIX%%RUNNUMBER%_hex*_info.txt" /MOV /NJH /NJS /NP /copy:DT /XX /R:100
 
 REM move hexagon original data files
-robocopy "%SRCDIR0%" "%DSTDIR%" "%FILE0%" /MOV /NJH /NJS /NP /copy:DT
-robocopy "%SRCDIR1%" "%DSTDIR%" "%FILE1%" /MOV /NJH /NJS /NP /copy:DT
-robocopy "%SRCDIR2%" "%DSTDIR%" "%FILE2%" /MOV /NJH /NJS /NP /copy:DT
-robocopy "%SRCDIR3%" "%DSTDIR%" "%FILE3%" /MOV /NJH /NJS /NP /copy:DT
+robocopy "%SRCDIR0%" "%DSTDIREXTRA%" "%FILE0%" /MOV /NJH /NJS /NP /copy:DT /XX /R:100
+robocopy "%SRCDIR1%" "%DSTDIREXTRA%" "%FILE1%" /MOV /NJH /NJS /NP /copy:DT /XX /R:100
+robocopy "%SRCDIR2%" "%DSTDIREXTRA%" "%FILE2%" /MOV /NJH /NJS /NP /copy:DT /XX /R:100
+robocopy "%SRCDIR3%" "%DSTDIREXTRA%" "%FILE3%" /MOV /NJH /NJS /NP /copy:DT /XX /R:100
 
-REM move nexus file
-REM need to remove "" from DATAFILEDIR in robocopy due to trailing \ in path
+REM get nexus file name parts
 for %%I in ( %DATAFILE% ) do set "DATAFILEDIR=%%~dI%%~pI"
 for %%I in ( %DATAFILE% ) do set "DATAFILENAME=%%~nI%%~xI"
-robocopy %DATAFILEDIR% "%DSTDIR%" "%DATAFILENAME%" /MOV /NJH /NJS /NP /copy:DT
+REM need to remove "" from DATAFILEDIR in robocopy due to trailing \ in path
+robocopy %DATAFILEDIR% "%DSTDIR%" "%DATAFILENAME%" /MOV /NJH /NJS /NP /copy:DT /XX /R:100
